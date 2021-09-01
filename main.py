@@ -38,6 +38,8 @@ colorY = (255, 255, 0)
 colorR = (255, 0, 0)
 colorG = (0, 255, 0)
 
+done = False
+
 # generating empty grid
 grid = []
 for y in range(rows):
@@ -47,12 +49,18 @@ for y in range(rows):
 
 while True:
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+        if event.type == pygame.QUIT: # event to exit the simulation
             pygame.quit()
             sys.exit()
+        elif event.type == pygame.KEYDOWN: # press enter to start simulation with the configuration 
+            if event.key == pygame.K_RETURN:
+                if done:
+                    done = False
+                else:
+                    done = True
 
     # draw source, food and other stuff
-    if pygame.mouse.get_pressed()[0]:
+    if pygame.mouse.get_pressed()[0] and not(done):
         mousePos = pygame.mouse.get_pos()
         for index, (rect, color, cell) in enumerate(grid):
             if rect.collidepoint(mousePos):
@@ -69,7 +77,10 @@ while True:
                 else:
                     cell.type = "SP" # starting point
                     grid[index] = (rect, colorY, cell)
-
+        
+    if done:
+        pass # start simulation
+    
     # Now draw the rects. You can unpack the tuples
     # again directly in the head of the for loop.
     for rect, color, cell in grid:
