@@ -3,7 +3,7 @@
 # S = Place where physarium is introduced
 # N = Nutrient Source
 
-# State a t time:
+# State at time:
 # ST = [ AA, PM, CHA, TE]
 # where:
 #   - AA = Available Area
@@ -18,6 +18,8 @@
 
 import pygame
 import sys
+
+from pygame.constants import CONTROLLER_AXIS_INVALID
 from Cell import Cell
 
 size = (width, height) = 500, 500
@@ -37,11 +39,122 @@ colorW = (255, 255, 255)
 colorY = (255, 255, 0)
 colorR = (255, 0, 0)
 colorG = (0, 255, 0)
+grid = [] # empty grid
 
-done = False
+done = False # false until configuration are done
+
+## parameter for the pphysarum simulation
+# parameters for diffusion equation for the cytoplasm
+PMP1 = 0.08
+PMP2 = 0.01
+
+# parameters for the diffusion of the chemoattractant
+CAP1 = 0.05
+CAP2 = 0.02
+
+# consumption percentage of the chemoattractant
+CON = 0.95
+
+# parameter for the attraction to the chemoattractant
+PAP = 0.8
+
+# threshold of Physarum Mass that encapsulate a NS
+thresholdPM = 0.2
+
+def getCHA(i, j):
+    if (i < 0 or i >= rows or j < 0 or j >= cols or grid[i + j][2].type == "U"):
+        return 0
+    else:
+        return grid[i + j][2].CHA
+
+def getPM(i, j):
+    if (i < 0 or i >= rows or j < 0 or j >= cols or grid[i + j][2].type == "U"):
+        return 0
+    else:
+        return grid[i + j][2].PM
+
+def getAA(i, j):
+    if (i < 0 or i >= rows or j < 0 or j >= cols or grid[i + j][2].type == "U"):
+        return 0
+    else:
+        return grid[i + j][2].AA
+
+def simulation():
+    for i in range(rows):
+        for j in range(cols):
+            if (grid[i + j][2].type != "S" and grid[i + j][2].type != "U"):
+                valuesCHA = [
+                    getCHA(i - 1, j - 1), # 0
+                    getCHA(i, j - 1), # 1
+                    getCHA(i + 1, j - 1), # 2
+                    getCHA(i - 1, j), # 3 
+                    getCHA(i + 1, j), # 4
+                    getCHA(i - 1, j + 1), # 5
+                    getCHA(i, j + 1), # 6
+                    getCHA(i + 1, j + 1) # 7
+                ]
+                
+                maxCHA = max(valuesCHA)
+
+                N = S = W = E = NW = NE = SW = SE = 0
+                
+                if (maxCHA == valuesCHA[0]):
+                    NW = PAP
+                    SE = -PAP
+                elif(maxCHA == valuesCHA[1]):
+                    N = PAP
+                    S = -PAP
+                elif (maxCHA == valuesCHA[2]): 
+                    NE = PAP
+                    SW = -PAP
+                elif (maxCHA == valuesCHA[3]):
+                    W = PAP
+                    E = -PAP
+                elif (maxCHA == valuesCHA[4]):
+                    E = PAP
+                    W = -PAP
+                elif (maxCHA == valuesCHA[5]):
+                    SW = PAP
+                    NE = -PAP
+                elif (maxCHA == valuesCHA[6]):
+                    S = PAP
+                    N = -PAP
+                elif (maxCHA == valuesCHA[7]):
+                    SE = PAP
+                    NW = -PAP
+
+                pmVN = pmMN = 0
+                pmVN = (((1 + W) * getPM(i - 1, j)) - (getAA(i - 1, j) * getPM(i, j))
+                    + ((1 + N) * getPM(i, j - 1)) - (getAA(i, j - 1) * getPM(i, j))
+                    + ((1 + E) * getPM(i + 1, j)) - (getAA(i + 1, j) * getPM(i, j))
+                    + ((1 + S) * getPM(i, j + 1)) - (getAA(i, j + 1) * getPM(i, j))
+                )
+                pmMN = (((1 + NW) * getPM(i - 1, j - 1)) - (getAA(i - 1, j - 1) * getPM(i, j))
+                    + ((1 + NE) * getPM(i + 1, j - 1))- (getAA(i + 1, j - 1) * getPM(i, j))
+                    + ((1 + SW) * getPM(i - 1, j + 1)) - (getAA(i - 1, j + 1) * getPM(i, j))
+                    + ((1 + SE) * getPM(i + 1, j + 1)) - (getAA(i + 1, j + 1) * getPM(i, j))
+                )
+                
+                grid[i + j][2].PM += (PMP1 * pmVN) + (PMP2 * pmMN)
+                
+                print(pmVN)
+
+            if (grid[i + j][2].type != "N" and grid[i + j][2].type != "U"):
+                chaVN = chaMN = 0
+                chaVN = ((getCHA(i - 1, j) - (getAA(i - 1, j) * getCHA(i, j)))
+                    + (getCHA(i, j - 1) - (getAA(i, j - 1) * getCHA(i, j)))
+                    + (getCHA(i + 1, j) - (getAA(i + 1, j) * getCHA(i, j)))
+                    + (getCHA(i, j + 1) - (getAA(i, j + 1) * getCHA(i, j)))
+                )
+                chaMN = ((getCHA(i - 1, j - 1) - (getAA(i - 1, j - 1) * getCHA(i, j)))
+                    + (getCHA(i + 1, j - 1) - (getAA(i + 1, j - 1) * getCHA(i, j)))
+                    + (getCHA(i - 1, j + 1) - (getAA(i - 1, j + 1) * getCHA(i, j)))
+                    + (getCHA(i + 1, j + 1) - (getAA(i + 1, j + 1) * getCHA(i, j)))
+                )          
+
+                grid[i + j][2].CHA = CON * (grid[i + j][2].CHA + CAP1 * chaVN + CAP2 * chaMN)
 
 # generating empty grid
-grid = []
 for y in range(rows):
     for x in range(cols):
         rect = pygame.Rect(x * (squareSize + 1), y * (squareSize + 1), squareSize, squareSize)
@@ -65,21 +178,30 @@ while True:
         for index, (rect, color, cell) in enumerate(grid):
             if rect.collidepoint(mousePos):
                 # Create a tuple with the new color and assign it.
+                cell.CHA = 0
+                cell.PM = 0
+                cell.AA = 1
                 if color == colorY:
                     cell.type = "U" # not available
+                    cell.AA = 0
                     grid[index] = (rect, colorR, cell)
                 elif color == colorR:
                     cell.type = "NS" # food
+                    cell.CHA = 100
                     grid[index] = (rect, colorG, cell)
                 elif color == colorG:
                     cell.type = "A" # avalaible
                     grid[index] = (rect, colorW, cell)
                 else:
                     cell.type = "SP" # starting point
+                    cell.PM = 100
                     grid[index] = (rect, colorY, cell)
         
     if done:
-        pass # start simulation
+        simulation() # start simulation
+        for index, (rect, color, cell) in enumerate(grid):
+            if cell.PM != 0:
+                grid[index] = (rect, colorY, cell)
     
     # Now draw the rects. You can unpack the tuples
     # again directly in the head of the for loop.
