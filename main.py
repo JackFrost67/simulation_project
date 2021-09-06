@@ -22,17 +22,17 @@ import sys
 from pygame.constants import CONTROLLER_AXIS_INVALID
 from Cell import Cell
 
-size = (width, height) = 500, 500
+size = (width, height) = 600, 600
 
 pygame.init()
 
-screen = pygame.display.set_mode(size) # setting screen size
+screen = pygame.display.set_mode(size, pygame.RESIZABLE) # setting screen size
 
 pygame.display.set_caption('Physarum Polycephalum Simulation') # setting name of the screen
 
 clock = pygame.time.Clock() # setting clock
 
-squareSize = 10
+squareSize = 60
 cols, rows = int(screen.get_width() / squareSize), int(screen.get_height() / squareSize)
 
 colorW = (255, 255, 255)
@@ -82,7 +82,7 @@ def getAA(i, j):
 def simulation():
     for i in range(rows):
         for j in range(cols):
-            if (grid[i + j][2].type != "S" and grid[i + j][2].type != "U"):
+            if (grid[i + j][2].type != "NS" and grid[i + j][2].type != "U"):
                 valuesCHA = [
                     getCHA(i - 1, j - 1), # 0
                     getCHA(i, j - 1), # 1
@@ -93,7 +93,7 @@ def simulation():
                     getCHA(i, j + 1), # 6
                     getCHA(i + 1, j + 1) # 7
                 ]
-                
+
                 maxCHA = max(valuesCHA)
 
                 N = S = W = E = NW = NE = SW = SE = 0
@@ -123,7 +123,6 @@ def simulation():
                     SE = PAP
                     NW = -PAP
 
-                pmVN = pmMN = 0
                 pmVN = (((1 + W) * getPM(i - 1, j)) - (getAA(i - 1, j) * getPM(i, j))
                     + ((1 + N) * getPM(i, j - 1)) - (getAA(i, j - 1) * getPM(i, j))
                     + ((1 + E) * getPM(i + 1, j)) - (getAA(i + 1, j) * getPM(i, j))
@@ -135,12 +134,9 @@ def simulation():
                     + ((1 + SE) * getPM(i + 1, j + 1)) - (getAA(i + 1, j + 1) * getPM(i, j))
                 )
                 
-                grid[i + j][2].PM += (PMP1 * pmVN) + (PMP2 * pmMN)
-                
-                print(pmVN)
+                grid[i + j][2].PM = getPM(i, j) + PMP1 * (pmVN + PMP2 * pmMN)
 
-            if (grid[i + j][2].type != "N" and grid[i + j][2].type != "U"):
-                chaVN = chaMN = 0
+            if (grid[i + j][2].type != "SP" and grid[i + j][2].type != "U"):
                 chaVN = ((getCHA(i - 1, j) - (getAA(i - 1, j) * getCHA(i, j)))
                     + (getCHA(i, j - 1) - (getAA(i, j - 1) * getCHA(i, j)))
                     + (getCHA(i + 1, j) - (getAA(i + 1, j) * getCHA(i, j)))
@@ -152,7 +148,12 @@ def simulation():
                     + (getCHA(i + 1, j + 1) - (getAA(i + 1, j + 1) * getCHA(i, j)))
                 )          
 
-                grid[i + j][2].CHA = CON * (grid[i + j][2].CHA + CAP1 * chaVN + CAP2 * chaMN)
+                grid[i + j][2].CHA = CON * ((getCHA(i, j) + CAP1 * (chaVN + CAP2 * chaMN)))
+                
+                if(grid[i + j][2].CHA > 100):
+                    grid[i + j][2].CHA = 100
+                elif(grid[i + j][2].CHA < 0):
+                    grid[i + j][2].CHA = 0
 
 # generating empty grid
 for y in range(rows):
@@ -194,13 +195,13 @@ while True:
                     grid[index] = (rect, colorW, cell)
                 else:
                     cell.type = "SP" # starting point
-                    cell.PM = 100
+                    cell.PM = 1000
                     grid[index] = (rect, colorY, cell)
-        
+    
     if done:
         simulation() # start simulation
         for index, (rect, color, cell) in enumerate(grid):
-            if cell.PM != 0:
+            if cell.PM > 0:
                 grid[index] = (rect, colorY, cell)
     
     # Now draw the rects. You can unpack the tuples
