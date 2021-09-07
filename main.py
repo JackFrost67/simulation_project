@@ -18,7 +18,7 @@
 
 import pygame
 import sys
-
+import numpy as np
 from pygame.constants import CONTROLLER_AXIS_INVALID
 from Cell import Cell
 
@@ -61,28 +61,33 @@ PAP = 0.8
 # threshold of Physarum Mass that encapsulate a NS
 thresholdPM = 0.2
 
+def clip(value, min_, max_):
+    value_ = [value]
+    value_ = np.clip(value_, min_, max_)
+    return value_[0]
+
 def getCHA(i, j):
-    if (i < 0 or i >= rows or j < 0 or j >= cols or grid[i + j][2].type == "U"):
+    if (i < 0 or i >= rows or j < 0 or j >= cols or grid[i * cols + j][2].type == "U"):
         return 0
     else:
-        return grid[i + j][2].CHA
+        return grid[i * cols + j][2].CHA
 
 def getPM(i, j):
-    if (i < 0 or i >= rows or j < 0 or j >= cols or grid[i + j][2].type == "U"):
+    if (i < 0 or i >= rows or j < 0 or j >= cols or grid[i * cols + j][2].type == "U"):
         return 0
     else:
-        return grid[i + j][2].PM
+        return grid[i * cols + j][2].PM
 
 def getAA(i, j):
-    if (i < 0 or i >= rows or j < 0 or j >= cols or grid[i + j][2].type == "U"):
+    if (i < 0 or i >= rows or j < 0 or j >= cols or grid[i * cols + j][2].type == "U"):
         return 0
     else:
-        return grid[i + j][2].AA
+        return grid[i * cols + j][2].AA
 
 def simulation():
     for i in range(rows):
         for j in range(cols):
-            if (grid[i + j][2].type != "NS" and grid[i + j][2].type != "U"):
+            if (grid[i * cols + j][2].type != "NS" and grid[i * cols + j][2].type != "U"):
                 valuesCHA = [
                     getCHA(i - 1, j - 1), # 0
                     getCHA(i, j - 1), # 1
@@ -134,9 +139,9 @@ def simulation():
                     + ((1 + SE) * getPM(i + 1, j + 1)) - (getAA(i + 1, j + 1) * getPM(i, j))
                 )
                 
-                grid[i + j][2].PM = getPM(i, j) + PMP1 * (pmVN + PMP2 * pmMN)
+                grid[i * cols + j][2].PM = getPM(i, j) + PMP1 * (pmVN + PMP2 * pmMN) if getPM(i, j) + PMP1 * (pmVN + PMP2 * pmMN) <= 1000 else 1000
 
-            if (grid[i + j][2].type != "SP" and grid[i + j][2].type != "U"):
+            if (grid[i * cols + j][2].type != "SP" and grid[i * cols + j][2].type != "U"):
                 chaVN = ((getCHA(i - 1, j) - (getAA(i - 1, j) * getCHA(i, j)))
                     + (getCHA(i, j - 1) - (getAA(i, j - 1) * getCHA(i, j)))
                     + (getCHA(i + 1, j) - (getAA(i + 1, j) * getCHA(i, j)))
@@ -148,12 +153,12 @@ def simulation():
                     + (getCHA(i + 1, j + 1) - (getAA(i + 1, j + 1) * getCHA(i, j)))
                 )          
 
-                grid[i + j][2].CHA = CON * ((getCHA(i, j) + CAP1 * (chaVN + CAP2 * chaMN)))
+                grid[i * cols + j][2].CHA = CON * ((getCHA(i, j) + CAP1 * (chaVN + CAP2 * chaMN)))
                 
-                if(grid[i + j][2].CHA > 100):
-                    grid[i + j][2].CHA = 100
-                elif(grid[i + j][2].CHA < 0):
-                    grid[i + j][2].CHA = 0
+                if(grid[i * cols + j][2].CHA > 100):
+                    grid[i * cols + j][2].CHA = 100
+                elif(grid[i * cols + j][2].CHA < 0):
+                    grid[i * cols + j][2].CHA = 0
 
 # generating empty grid
 for y in range(rows):
@@ -201,13 +206,16 @@ while True:
     if done:
         simulation() # start simulation
         for index, (rect, color, cell) in enumerate(grid):
-            if cell.PM > 0:
-                grid[index] = (rect, colorY, cell)
+            alpha = (int)(cell.PM)
+            alpha_ = clip(alpha, 0, 255)
+            print("clip value", clip(alpha, 0, 255))
+            color = (255, 255, 255 - alpha_)
+            grid[index] = (rect, color, cell)
     
     # Now draw the rects. You can unpack the tuples
     # again directly in the head of the for loop.
     for rect, color, cell in grid:
         pygame.draw.rect(screen, color, rect)
-
+    
     pygame.display.flip()
     clock.tick(10)
