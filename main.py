@@ -32,13 +32,14 @@ pygame.display.set_caption('Physarum Polycephalum Simulation') # setting name of
 
 clock = pygame.time.Clock() # setting clock
 
-squareSize = 60
+squareSize = 10
 cols, rows = int(screen.get_width() / squareSize), int(screen.get_height() / squareSize)
 
 colorW = (255, 255, 255)
 colorY = (255, 255, 0)
 colorR = (255, 0, 0)
 colorG = (0, 255, 0)
+colorB = (0, 0, 0)
 grid = [] # empty grid
 
 done = False # false until configuration are done
@@ -59,7 +60,7 @@ CON = 0.95
 PAP = 0.8
 
 # threshold of Physarum Mass that encapsulate a NS
-thresholdPM = 0.2
+thresholdPM = 500
 
 def clip(value, min_, max_):
     value_ = [value]
@@ -84,10 +85,62 @@ def getAA(i, j):
     else:
         return grid[i * cols + j][2].AA
 
+def setTE(i, j):
+    alpha0 = alpha1 = alpha2 = alpha3 = alpha4 = alpha5 = alpha6= alpha7 = 1
+    while(grid[i * cols + j][2].type != "SP"):
+        valuesPM = [
+            getPM(i - 1, j - 1) * alpha0, # 0
+            getPM(i, j - 1) * alpha1, # 1
+            getPM(i + 1, j - 1) * alpha2, # 2
+            getPM(i - 1, j) * alpha3, # 3 
+            getPM(i + 1, j) * alpha4, # 4
+            getPM(i - 1, j + 1) * alpha5, # 5
+            getPM(i, j + 1) * alpha6, # 6
+            getPM(i + 1, j + 1) * alpha7 # 7
+        ]         
+        
+        grid[i * cols + j][2].TE = True
+        grid[i * cols + j] = (grid[i * cols + j][0], colorB, grid[i * cols + j][2])
+        maxPMindex = valuesPM.index(max(valuesPM))
+        
+        alpha0 = alpha1 = alpha2 = alpha3 = alpha4 = alpha5 = alpha6= alpha7 = 1
+
+        if(maxPMindex == 0):
+            i = i - 1
+            j = j - 1
+            alpha7 = 0
+        elif(maxPMindex == 1):
+            j = j - 1
+            alpha6 = 0
+        elif(maxPMindex == 2):
+            i = i + 1
+            j = j - 1
+            alpha5 = 0
+        elif(maxPMindex == 3):
+            i = i - 1
+            alpha4 = 0
+        elif(maxPMindex == 4):
+            i = i + 1
+            alpha3 = 1
+        elif(maxPMindex == 5):
+            i = i - 1
+            j = j + 1
+            alpha2 = 0
+        elif(maxPMindex == 6):
+            j = j + 1
+            alpha1 = 0
+        else:
+            i = i + 1
+            j = j + 1
+            alpha0 = 0
+
+    if(grid[i * cols + j][2].type == "SP"):
+        grid[i * cols + j][2].TE = True
+
 def simulation():
     for i in range(rows):
         for j in range(cols):
-            if (grid[i * cols + j][2].type != "NS" and grid[i * cols + j][2].type != "U"):
+            if (grid[i * cols + j][2].type != "U"):
                 valuesCHA = [
                     getCHA(i - 1, j - 1), # 0
                     getCHA(i, j - 1), # 1
@@ -141,7 +194,6 @@ def simulation():
                 
                 grid[i * cols + j][2].PM = getPM(i, j) + PMP1 * (pmVN + PMP2 * pmMN) if getPM(i, j) + PMP1 * (pmVN + PMP2 * pmMN) <= 1000 else 1000
 
-            if (grid[i * cols + j][2].type != "SP" and grid[i * cols + j][2].type != "U"):
                 chaVN = ((getCHA(i - 1, j) - (getAA(i - 1, j) * getCHA(i, j)))
                     + (getCHA(i, j - 1) - (getAA(i, j - 1) * getCHA(i, j)))
                     + (getCHA(i + 1, j) - (getAA(i + 1, j) * getCHA(i, j)))
@@ -159,6 +211,10 @@ def simulation():
                     grid[i * cols + j][2].CHA = 100
                 elif(grid[i * cols + j][2].CHA < 0):
                     grid[i * cols + j][2].CHA = 0
+
+            if(grid[i * cols + j][2].type == "NS" and grid[i * cols + j][2].PM >= thresholdPM):
+                setTE(i, j)
+                grid[i * cols + j][2].type = "SP"
 
 # generating empty grid
 for y in range(rows):
@@ -206,12 +262,14 @@ while True:
     if done:
         simulation() # start simulation
         for index, (rect, color, cell) in enumerate(grid):
-            alpha = (int)(cell.PM)
-            alpha_ = clip(alpha, 0, 255)
-            print("clip value", clip(alpha, 0, 255))
-            color = (255, 255, 255 - alpha_)
-            grid[index] = (rect, color, cell)
-    
+            if(cell.PM != 0 and (cell.type != "NS" and cell.type != "U")):
+                alpha = clip((int)(cell.PM), 0, 255)
+                color = (255, 255, 255 - alpha)
+                grid[index] = (rect, color, cell)
+
+            if(cell.TE == True):
+                grid[index] = (rect, colorB, cell)
+            
     # Now draw the rects. You can unpack the tuples
     # again directly in the head of the for loop.
     for rect, color, cell in grid:
