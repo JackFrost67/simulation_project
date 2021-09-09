@@ -16,13 +16,13 @@
 # Apply diffusion equation for certian amount of steps
 # Check in any of the N are cover with a certain amount of mould
 
-import pygame
 import sys
 import numpy as np
+import pygame
 from pygame.constants import CONTROLLER_AXIS_INVALID
 from Cell import Cell
 
-size = (width, height) = 600, 600
+size = (width, height) = 300, 300
 
 pygame.init()
 
@@ -86,58 +86,30 @@ def getAA(i, j):
         return grid[i * cols + j][2].AA
 
 def setTE(i, j):
-    alpha0 = alpha1 = alpha2 = alpha3 = alpha4 = alpha5 = alpha6= alpha7 = 1
+    last = (-1, -1)
+    secondlast = (-1, -1)
+    
     while(grid[i * cols + j][2].type != "SP"):
-        valuesPM = [
-            getPM(i - 1, j - 1) * alpha0, # 0
-            getPM(i, j - 1) * alpha1, # 1
-            getPM(i + 1, j - 1) * alpha2, # 2
-            getPM(i - 1, j) * alpha3, # 3 
-            getPM(i + 1, j) * alpha4, # 4
-            getPM(i - 1, j + 1) * alpha5, # 5
-            getPM(i, j + 1) * alpha6, # 6
-            getPM(i + 1, j + 1) * alpha7 # 7
-        ]         
         
         grid[i * cols + j][2].TE = True
         grid[i * cols + j] = (grid[i * cols + j][0], colorB, grid[i * cols + j][2])
-        maxPMindex = valuesPM.index(max(valuesPM))
         
-        alpha0 = alpha1 = alpha2 = alpha3 = alpha4 = alpha5 = alpha6= alpha7 = 1
-
-        if(maxPMindex == 0):
-            i = i - 1
-            j = j - 1
-            alpha7 = 0
-        elif(maxPMindex == 1):
-            j = j - 1
-            alpha6 = 0
-        elif(maxPMindex == 2):
-            i = i + 1
-            j = j - 1
-            alpha5 = 0
-        elif(maxPMindex == 3):
-            i = i - 1
-            alpha4 = 0
-        elif(maxPMindex == 4):
-            i = i + 1
-            alpha3 = 1
-        elif(maxPMindex == 5):
-            i = i - 1
-            j = j + 1
-            alpha2 = 0
-        elif(maxPMindex == 6):
-            j = j + 1
-            alpha1 = 0
-        else:
-            i = i + 1
-            j = j + 1
-            alpha0 = 0
+        maxPM = -1
+        for x in range(i-1, i+2):
+            for y in range (j-1, j+2):
+                if ((i,j)  not in [last, secondlast] and getPM(i, j) > maxPM):
+                    l = x
+                    m = y 
+                    maxPM = getPM(i,j)
+        #Problema computazionale?
+        secondlast = last
+        last = (l, m)
+                     
 
     if(grid[i * cols + j][2].type == "SP"):
         grid[i * cols + j][2].TE = True
 
-def simulation():
+def diffusion_equation():
     for i in range(rows):
         for j in range(cols):
             if (grid[i * cols + j][2].type != "U"):
@@ -212,15 +184,73 @@ def simulation():
                 elif(grid[i * cols + j][2].CHA < 0):
                     grid[i * cols + j][2].CHA = 0
 
-            if(grid[i * cols + j][2].type == "NS" and grid[i * cols + j][2].PM >= thresholdPM):
-                setTE(i, j)
-                grid[i * cols + j][2].type = "SP"
-
+def simulation():
+    
+    #Save all NS cell
+    cellNS = []
+    cellSP = []
+    for (_, _ , c) in grid:
+        if (c.type == "NS"):
+            cellNS.append(c) 
+    #Start the simulation
+    t = 1
+    keepOn = True 
+    #lastTwoCellNS[0] last cell
+    #lastTwoCellNS[1] second last cell
+    lastTwoCellNS = [None, None]
+    while (keepOn):
+        #for 50 times we compute the equation
+        if (t % 50 != 0):
+            diffusion_equation()
+        else:
+        #if list of foos is empty, stop the simulation
+            if (cellNS):
+                return
+            for cell in cellNS:
+                i = cell.index[0]
+                j = cell.index[1]
+                
+                if (grid[i * cols + j][2].type == "NS"
+                   and grid[i * cols + j][2].PM >= thresholdPM):
+                        setTE(i, j)
+                        cellSP.append(cell)
+                        cellNS.remove(cell)
+                        grid[i * cols + j][2].type = "SP"
+                        lastTwoCellNS[1] = lastTwoCellNS[0]
+                        lastTwoCellNS[0] = cell
+            if (t % 5000 == 0):
+                if (t % 10000 == 0):  
+                    return 
+                for c in cellSP:
+                    cell.type = "NS"
+                    cellNS.append(cell)
+                    cellSP.remove(cell)
+                cellSP.add(lastTwoCellNS[1])
+                cell.type = "SP"
+        
+        if(t % 1 == 0):
+            for index, (rect, color, cell) in enumerate(grid):
+                if(cell.PM != 0 and (cell.type != "NS" and cell.type != "U")):
+                    alpha = clip((int)(cell.PM), 0, 255)
+                    print(alpha)
+                    color = (255, 255, 255 - alpha)
+                    grid[index] = (rect, color, cell)
+    
+                if(cell.TE == True):
+                    grid[index] = (rect, colorB, cell)
+            #print(t)
+        t = t + 1
+                
+                    
+                
+            
+                
+             
 # generating empty grid
 for y in range(rows):
     for x in range(cols):
         rect = pygame.Rect(x * (squareSize + 1), y * (squareSize + 1), squareSize, squareSize)
-        grid.append((rect, colorW, Cell()))
+        grid.append((rect, colorW, Cell(index=(y,x))))
 
 while True:
     for event in pygame.event.get():
@@ -269,6 +299,7 @@ while True:
 
             if(cell.TE == True):
                 grid[index] = (rect, colorB, cell)
+        
             
     # Now draw the rects. You can unpack the tuples
     # again directly in the head of the for loop.
@@ -277,3 +308,4 @@ while True:
     
     pygame.display.flip()
     clock.tick(10)
+
