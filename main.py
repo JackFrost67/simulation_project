@@ -32,7 +32,7 @@ pygame.display.set_caption('Physarum Polycephalum Simulation') # setting name of
 
 clock = pygame.time.Clock() # setting clock
 
-squareSize = 10
+squareSize = 30
 cols, rows = int(screen.get_width() / squareSize), int(screen.get_height() / squareSize)
 
 colorW = (255, 255, 255)
@@ -95,16 +95,17 @@ def setTE(i, j):
         grid[i * cols + j] = (grid[i * cols + j][0], colorB, grid[i * cols + j][2])
         
         maxPM = -1
-        for x in range(i-1, i+2):
-            for y in range (j-1, j+2):
-                if ((i,j)  not in [last, secondlast] and getPM(i, j) > maxPM):
+        for x in range(i - 1, i + 2):
+            for y in range (j - 1, j + 2):
+                if ((x, y)  not in [last, secondlast] and getPM(x, y) > maxPM):
                     l = x
                     m = y 
-                    maxPM = getPM(i,j)
+                    maxPM = getPM(x, y)
+        i = l
+        j = m 
         #Problema computazionale?
         secondlast = last
-        last = (l, m)
-                     
+        last = (l, m)               
 
     if(grid[i * cols + j][2].type == "SP"):
         grid[i * cols + j][2].TE = True
@@ -185,13 +186,16 @@ def diffusion_equation():
                     grid[i * cols + j][2].CHA = 0
 
 def simulation():
-    
     #Save all NS cell
     cellNS = []
     cellSP = []
-    for (_, _ , c) in grid:
-        if (c.type == "NS"):
-            cellNS.append(c) 
+    for (_, _ , cell) in grid:
+        if (cell.type == "NS"):
+            cellNS.append(cell) 
+
+        if (cell.type == "Sp"):
+            cellSP.append(cell) 
+
     #Start the simulation
     t = 1
     keepOn = True 
@@ -203,48 +207,43 @@ def simulation():
         if (t % 50 != 0):
             diffusion_equation()
         else:
-        #if list of foos is empty, stop the simulation
-            if (cellNS):
+        #if list of foods is empty, stop the simulation
+            if (not cellNS):
                 return
             for cell in cellNS:
                 i = cell.index[0]
                 j = cell.index[1]
                 
-                if (grid[i * cols + j][2].type == "NS"
-                   and grid[i * cols + j][2].PM >= thresholdPM):
-                        setTE(i, j)
-                        cellSP.append(cell)
-                        cellNS.remove(cell)
-                        grid[i * cols + j][2].type = "SP"
-                        lastTwoCellNS[1] = lastTwoCellNS[0]
-                        lastTwoCellNS[0] = cell
-            if (t % 5000 == 0):
-                if (t % 10000 == 0):  
-                    return 
-                for c in cellSP:
-                    cell.type = "NS"
-                    cellNS.append(cell)
-                    cellSP.remove(cell)
-                cellSP.add(lastTwoCellNS[1])
-                cell.type = "SP"
-        
-        if(t % 1 == 0):
-            for index, (rect, color, cell) in enumerate(grid):
-                if(cell.PM != 0 and (cell.type != "NS" and cell.type != "U")):
-                    alpha = clip((int)(cell.PM), 0, 255)
-                    print(alpha)
-                    color = (255, 255, 255 - alpha)
-                    grid[index] = (rect, color, cell)
-    
-                if(cell.TE == True):
-                    grid[index] = (rect, colorB, cell)
-            #print(t)
-        t = t + 1
-                
+                if (grid[i * cols + j][2].type == "NS" and grid[i * cols + j][2].PM >= thresholdPM):
+                    setTE(i, j)
+                    print("test")
+                    cellSP.append(cell)
+                    cellNS.remove(cell)
+                    grid[i * cols + j][2].type = "SP"
+                    lastTwoCellNS[1] = lastTwoCellNS[0]
+                    lastTwoCellNS[0] = cell
                     
-                
-            
-                
+            if (t >= 5000):
+                if (t >= 10000):  
+                    return
+                if(t == 5000): 
+                    for c in cellSP:
+                        cell.type = "NS"
+                        cellNS.append(cell)
+                        cellSP.remove(cell)
+                    cellSP.add(lastTwoCellNS[1])
+                    cell.type = "SP"
+
+        for index, (rect, color, cell) in enumerate(grid):
+            if(cell.PM != 0 and (cell.type != "NS" and cell.type != "U")):
+                alpha = clip((int)(cell.PM), 0, 255)
+                color = (255, 255, 255 - alpha)
+                grid[index] = (rect, color, cell)
+
+            if(cell.TE == True):
+                grid[index] = (rect, colorB, cell)
+        print("t", t)
+        t = t + 1         
              
 # generating empty grid
 for y in range(rows):
@@ -253,6 +252,7 @@ for y in range(rows):
         grid.append((rect, colorW, Cell(index=(y,x))))
 
 while True:
+    print("START")
     for event in pygame.event.get():
         if event.type == pygame.QUIT: # event to exit the simulation
             pygame.quit()
