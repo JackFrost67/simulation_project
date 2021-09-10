@@ -233,7 +233,7 @@ def simulation():
                         cellSP.remove(cell)
                     cellSP.add(lastTwoCellNS[1])
                     cell.type = "SP"
-
+        
         for index, (rect, color, cell) in enumerate(grid):
             if(cell.PM != 0 and (cell.type != "NS" and cell.type != "U")):
                 alpha = clip((int)(cell.PM), 0, 255)
@@ -242,8 +242,35 @@ def simulation():
 
             if(cell.TE == True):
                 grid[index] = (rect, colorB, cell)
+
+        for rect, color, cell in grid:
+            pygame.draw.rect(screen, color, rect)
         print("t", t)
-        t = t + 1         
+        t = t + 1    
+
+def define_tube():
+    #TODO define a method for identify cell NS and SP
+    #We use it in different situation
+    cellNS = []
+    cellSP = []
+    for (_, _ , cell) in grid:
+        if (cell.type == "NS"):
+            cellNS.append(cell) 
+
+        if (cell.type == "Sp"):
+            cellSP.append(cell)
+    
+    allCell = list(set(cellNS) | set(cellSP)) 
+    for c in allCell:
+        #Follow all tube from c to another cell in allCell
+        link = False
+        i = c.index[0]
+        j = c.index[1]
+        while (not (link)):
+            for x in range(i - 1, i + 2):
+                 for y in range (j - 1, j + 2):
+                    return (x)
+
              
 # generating empty grid
 for y in range(rows):
@@ -291,6 +318,7 @@ while True:
     
     if done:
         simulation() # start simulation
+        define_tube()
         for index, (rect, color, cell) in enumerate(grid):
             if(cell.PM != 0 and (cell.type != "NS" and cell.type != "U")):
                 alpha = clip((int)(cell.PM), 0, 255)
