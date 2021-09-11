@@ -32,7 +32,7 @@ pygame.display.set_caption('Physarum Polycephalum Simulation') # setting name of
 
 clock = pygame.time.Clock() # setting clock
 
-squareSize = 30
+squareSize = 10
 cols, rows = int(screen.get_width() / squareSize), int(screen.get_height() / squareSize)
 
 colorW = (255, 255, 255)
@@ -51,13 +51,13 @@ PMP2 = 0.01
 
 # parameters for the diffusion of the chemoattractant
 CAP1 = 0.05
-CAP2 = 0.02
+CAP2 = 0.01
 
 # consumption percentage of the chemoattractant
 CON = 0.95
 
 # parameter for the attraction to the chemoattractant
-PAP = 0.8
+PAP = 0.7
 
 # threshold of Physarum Mass that encapsulate a NS
 thresholdPM = 500
@@ -85,35 +85,46 @@ def getAA(i, j):
     else:
         return grid[i * cols + j][2].AA
 
-def setTE(i, j):
+#TODO ricontrollare il funzionamento e capire perchè i seguire l PM massimo non è un percorso sensato
+def setTE(i, j, countLoop = 0 ):
     last = (-1, -1)
     secondlast = (-1, -1)
+
+
     
-    while(grid[i * cols + j][2].type != "SP"):
+    if (grid[i * cols + j][2].type != "SP" and countLoop < 500):
         
         grid[i * cols + j][2].TE = True
         grid[i * cols + j] = (grid[i * cols + j][0], colorB, grid[i * cols + j][2])
         
-        maxPM = -1
+        maxPM = float('-inf')
         for x in range(i - 1, i + 2):
             for y in range (j - 1, j + 2):
-                if ((x, y)  not in [last, secondlast] and getPM(x, y) > maxPM):
-                    l = x
-                    m = y 
-                    maxPM = getPM(x, y)
+                if not(x == i and y == j):
+                    if (getPM(x, y) > maxPM):
+                        l = x
+                        m = y 
+                        maxPM = getPM(x, y)
         i = l
         j = m 
+        countLoop = countLoop + 1
+        setTE(i, j, countLoop)
         #Problema computazionale?
-        secondlast = last
-        last = (l, m)               
+        #secondlast = last
+        #last = (l, m)
 
     if(grid[i * cols + j][2].type == "SP"):
         grid[i * cols + j][2].TE = True
+        return True
+
+    if (countLoop == 500):
+        return False
+
 
 def diffusion_equation():
     for i in range(rows):
         for j in range(cols):
-            if (grid[i * cols + j][2].type != "U"):
+            if (grid[i * cols + j][2].type != "U" and grid[i * cols + j][2].type != "SP"):
                 valuesCHA = [
                     getCHA(i - 1, j - 1), # 0
                     getCHA(i, j - 1), # 1
@@ -167,6 +178,8 @@ def diffusion_equation():
                 
                 grid[i * cols + j][2].PM = getPM(i, j) + PMP1 * (pmVN + PMP2 * pmMN) if getPM(i, j) + PMP1 * (pmVN + PMP2 * pmMN) <= 1000 else 1000
 
+            if(grid[i * cols + j][2].type != "U" and grid[i * cols + j][2].type != "NS"):
+                
                 chaVN = ((getCHA(i - 1, j) - (getAA(i - 1, j) * getCHA(i, j)))
                     + (getCHA(i, j - 1) - (getAA(i, j - 1) * getCHA(i, j)))
                     + (getCHA(i + 1, j) - (getAA(i + 1, j) * getCHA(i, j)))
@@ -214,12 +227,15 @@ def simulation():
                 i = cell.index[0]
                 j = cell.index[1]
                 
-                if (grid[i * cols + j][2].type == "NS" and grid[i * cols + j][2].PM >= thresholdPM):
-                    setTE(i, j)
+                if (cell.type == "NS" and cell.PM >= thresholdPM):
+                    keepOn = setTE(i, j)
                     print("test")
+                    cell.type = "SP"
+                    cell.CHA = 0
+                    cell.PM = 100
                     cellSP.append(cell)
                     cellNS.remove(cell)
-                    grid[i * cols + j][2].type = "SP"
+                    
                     lastTwoCellNS[1] = lastTwoCellNS[0]
                     lastTwoCellNS[0] = cell
                     
@@ -229,10 +245,16 @@ def simulation():
                 if(t == 5000): 
                     for c in cellSP:
                         cell.type = "NS"
+                        cell.CHA = 100
                         cellNS.append(cell)
                         cellSP.remove(cell)
+                    
+                    lastTwoCellNS[1].type = "SP"
+                    lastTwoCellNS[1].PM = 100
+                    lastTwoCellNS[1].CHA = 0
                     cellSP.add(lastTwoCellNS[1])
-                    cell.type = "SP"
+                    if (lastTwoCellNS[1] in  cellNS):
+                        cellNS.remove(lastTwoCellNS[1])
         
         for index, (rect, color, cell) in enumerate(grid):
             if(cell.PM != 0 and (cell.type != "NS" and cell.type != "U")):
@@ -278,8 +300,8 @@ for y in range(rows):
         rect = pygame.Rect(x * (squareSize + 1), y * (squareSize + 1), squareSize, squareSize)
         grid.append((rect, colorW, Cell(index=(y,x))))
 
-while True:
-    print("START")
+simulationOn=True
+while simulationOn:
     for event in pygame.event.get():
         if event.type == pygame.QUIT: # event to exit the simulation
             pygame.quit()
@@ -313,12 +335,18 @@ while True:
                     grid[index] = (rect, colorW, cell)
                 else:
                     cell.type = "SP" # starting point
-                    cell.PM = 1000
+                    cell.PM = 100
                     grid[index] = (rect, colorY, cell)
     
     if done:
+        TestPM = []
+        for a in range(rows):
+            TestPM.append([])
+            for b in range(cols):
+                TestPM[a].append((grid[a*cols + b][2].PM,grid[a*cols + b][2].CHA ))
+
         simulation() # start simulation
-        define_tube()
+        #define_tube()
         for index, (rect, color, cell) in enumerate(grid):
             if(cell.PM != 0 and (cell.type != "NS" and cell.type != "U")):
                 alpha = clip((int)(cell.PM), 0, 255)
@@ -328,6 +356,10 @@ while True:
             if(cell.TE == True):
                 grid[index] = (rect, colorB, cell)
         
+        for rect, color, cell in grid:
+            pygame.draw.rect(screen, color, rect)
+        simulationOn = False
+        
             
     # Now draw the rects. You can unpack the tuples
     # again directly in the head of the for loop.
@@ -336,4 +368,5 @@ while True:
     
     pygame.display.flip()
     clock.tick(10)
+   
 
