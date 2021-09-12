@@ -57,10 +57,10 @@ CAP2 = 0.01
 CON = 0.95
 
 # parameter for the attraction to the chemoattractant
-PAP = 0.7
+PAP = 0.8
 
 # threshold of Physarum Mass that encapsulate a NS
-thresholdPM = 500
+thresholdPM = 0.2
 
 def clip(value, min_, max_):
     value_ = [value]
@@ -86,18 +86,15 @@ def getAA(i, j):
         return grid[i * cols + j][2].AA
 
 #TODO ricontrollare il funzionamento e capire perchè i seguire l PM massimo non è un percorso sensato
-def setTE(i, j, countLoop = 0 ):
+def setTE(i, j, countLoop = 0):
     last = (-1, -1)
     secondlast = (-1, -1)
-
-
     
-    if (grid[i * cols + j][2].type != "SP" and countLoop < 500):
-        
+    if (grid[i * cols + j][2].type != "SP" and countLoop < 500):  
         grid[i * cols + j][2].TE = True
         grid[i * cols + j] = (grid[i * cols + j][0], colorB, grid[i * cols + j][2])
         
-        maxPM = float('-inf')
+        maxPM = 0
         for x in range(i - 1, i + 2):
             for y in range (j - 1, j + 2):
                 if not(x == i and y == j):
@@ -109,9 +106,6 @@ def setTE(i, j, countLoop = 0 ):
         j = m 
         countLoop = countLoop + 1
         setTE(i, j, countLoop)
-        #Problema computazionale?
-        #secondlast = last
-        #last = (l, m)
 
     if(grid[i * cols + j][2].type == "SP"):
         grid[i * cols + j][2].TE = True
@@ -122,6 +116,11 @@ def setTE(i, j, countLoop = 0 ):
 
 
 def diffusion_equation():
+    # Now draw the rects. You can unpack the tuples
+    # again directly in the head of the for loop.
+    for rect, color, cell in grid:
+        pygame.draw.rect(screen, color, rect)
+
     for i in range(rows):
         for j in range(cols):
             if (grid[i * cols + j][2].type != "U" and grid[i * cols + j][2].type != "SP"):
@@ -197,11 +196,19 @@ def diffusion_equation():
                     grid[i * cols + j][2].CHA = 100
                 elif(grid[i * cols + j][2].CHA < 0):
                     grid[i * cols + j][2].CHA = 0
+            
+            (rect, color, cell) = grid[i * cols + j]
+            if(cell.PM != 0 and (cell.type != "NS" and cell.type != "U")):
+                alpha = clip((int)(cell.PM), 0, 255)
+                color = (255, 255, 255 - alpha)
+                grid[i * cols + j] = (rect, color, cell)
+            pygame.display.flip()
 
 def simulation():
     #Save all NS cell
     cellNS = []
     cellSP = []
+
     for (_, _ , cell) in grid:
         if (cell.type == "NS"):
             cellNS.append(cell) 
@@ -223,25 +230,25 @@ def simulation():
         #if list of foods is empty, stop the simulation
             if (not cellNS):
                 return
+
             for cell in cellNS:
                 i = cell.index[0]
                 j = cell.index[1]
                 
                 if (cell.type == "NS" and cell.PM >= thresholdPM):
                     keepOn = setTE(i, j)
-                    print("test")
                     cell.type = "SP"
                     cell.CHA = 0
                     cell.PM = 100
                     cellSP.append(cell)
                     cellNS.remove(cell)
-                    
                     lastTwoCellNS[1] = lastTwoCellNS[0]
                     lastTwoCellNS[0] = cell
                     
             if (t >= 5000):
                 if (t >= 10000):  
                     return
+
                 if(t == 5000): 
                     for c in cellSP:
                         cell.type = "NS"
@@ -253,120 +260,82 @@ def simulation():
                     lastTwoCellNS[1].PM = 100
                     lastTwoCellNS[1].CHA = 0
                     cellSP.add(lastTwoCellNS[1])
+
                     if (lastTwoCellNS[1] in  cellNS):
                         cellNS.remove(lastTwoCellNS[1])
-        
-        for index, (rect, color, cell) in enumerate(grid):
-            if(cell.PM != 0 and (cell.type != "NS" and cell.type != "U")):
-                alpha = clip((int)(cell.PM), 0, 255)
-                color = (255, 255, 255 - alpha)
-                grid[index] = (rect, color, cell)
 
-            if(cell.TE == True):
-                grid[index] = (rect, colorB, cell)
-
-        for rect, color, cell in grid:
-            pygame.draw.rect(screen, color, rect)
         print("t", t)
         t = t + 1    
 
-def define_tube():
-    #TODO define a method for identify cell NS and SP
-    #We use it in different situation
-    cellNS = []
-    cellSP = []
-    for (_, _ , cell) in grid:
-        if (cell.type == "NS"):
-            cellNS.append(cell) 
+if __name__ == "__main__":
+    # generating empty grid
+    for y in range(rows):
+        for x in range(cols):
+            rect = pygame.Rect(x * (squareSize + 1), y * (squareSize + 1), squareSize, squareSize)
+            grid.append((rect, colorW, Cell(index=(y,x))))
 
-        if (cell.type == "Sp"):
-            cellSP.append(cell)
-    
-    allCell = list(set(cellNS) | set(cellSP)) 
-    for c in allCell:
-        #Follow all tube from c to another cell in allCell
-        link = False
-        i = c.index[0]
-        j = c.index[1]
-        while (not (link)):
-            for x in range(i - 1, i + 2):
-                 for y in range (j - 1, j + 2):
-                    return (x)
+    simulationOn = True
+    while simulationOn:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT: # event to exit the simulation
+                simulationOn = False
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN: # press enter to start simulation with the configuration 
+                if event.key == pygame.K_RETURN:
+                    if done:
+                        done = False
+                    else:
+                        done = True
 
-             
-# generating empty grid
-for y in range(rows):
-    for x in range(cols):
-        rect = pygame.Rect(x * (squareSize + 1), y * (squareSize + 1), squareSize, squareSize)
-        grid.append((rect, colorW, Cell(index=(y,x))))
-
-simulationOn=True
-while simulationOn:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT: # event to exit the simulation
-            pygame.quit()
-            sys.exit()
-        elif event.type == pygame.KEYDOWN: # press enter to start simulation with the configuration 
-            if event.key == pygame.K_RETURN:
-                if done:
-                    done = False
-                else:
-                    done = True
-
-    # draw source, food and other stuff
-    if pygame.mouse.get_pressed()[0] and not(done):
-        mousePos = pygame.mouse.get_pos()
-        for index, (rect, color, cell) in enumerate(grid):
-            if rect.collidepoint(mousePos):
-                # Create a tuple with the new color and assign it.
-                cell.CHA = 0
-                cell.PM = 0
-                cell.AA = 1
-                if color == colorY:
-                    cell.type = "U" # not available
-                    cell.AA = 0
-                    grid[index] = (rect, colorR, cell)
-                elif color == colorR:
-                    cell.type = "NS" # food
-                    cell.CHA = 100
-                    grid[index] = (rect, colorG, cell)
-                elif color == colorG:
-                    cell.type = "A" # avalaible
-                    grid[index] = (rect, colorW, cell)
-                else:
-                    cell.type = "SP" # starting point
-                    cell.PM = 100
-                    grid[index] = (rect, colorY, cell)
-    
-    if done:
-        TestPM = []
-        for a in range(rows):
-            TestPM.append([])
-            for b in range(cols):
-                TestPM[a].append((grid[a*cols + b][2].PM,grid[a*cols + b][2].CHA ))
-
-        simulation() # start simulation
-        #define_tube()
-        for index, (rect, color, cell) in enumerate(grid):
-            if(cell.PM != 0 and (cell.type != "NS" and cell.type != "U")):
-                alpha = clip((int)(cell.PM), 0, 255)
-                color = (255, 255, 255 - alpha)
-                grid[index] = (rect, color, cell)
-
-            if(cell.TE == True):
-                grid[index] = (rect, colorB, cell)
-        
+        # Now draw the rects. You can unpack the tuples
+        # again directly in the head of the for loop.
         for rect, color, cell in grid:
             pygame.draw.rect(screen, color, rect)
-        simulationOn = False
-        
-            
-    # Now draw the rects. You can unpack the tuples
-    # again directly in the head of the for loop.
-    for rect, color, cell in grid:
-        pygame.draw.rect(screen, color, rect)
-    
-    pygame.display.flip()
-    clock.tick(10)
-   
 
+        # draw source, food and other stuff
+        if pygame.mouse.get_pressed()[0] and not(done):
+            mousePos = pygame.mouse.get_pos()
+            for index, (rect, color, cell) in enumerate(grid):
+                if rect.collidepoint(mousePos):
+                    # Create a tuple with the new color and assign it.
+                    cell.CHA = 0
+                    cell.PM = 0
+                    cell.AA = 1
+                    if color == colorY:
+                        cell.type = "U" # not available
+                        cell.AA = 0
+                        grid[index] = (rect, colorR, cell)
+                    elif color == colorR:
+                        cell.type = "NS" # food
+                        cell.CHA = 100
+                        grid[index] = (rect, colorG, cell)
+                    elif color == colorG:
+                        cell.type = "A" # avalaible
+                        grid[index] = (rect, colorW, cell)
+                    else:
+                        cell.type = "SP" # starting point
+                        cell.PM = 100
+                        grid[index] = (rect, colorY, cell)
+        
+        if done:
+            TestPM = []
+            for a in range(rows):
+                TestPM.append([])
+                for b in range(cols):
+                    TestPM[a].append((grid[a * cols + b][2].PM, grid[a * cols + b][2].CHA))
+
+            simulation() # start simulation
+            
+            for index, (rect, color, cell) in enumerate(grid):
+                # if(cell.PM != 0 and (cell.type != "NS" and cell.type != "U")):
+                #     alpha = clip((int)(cell.PM), 0, 255)
+                #     color = (255, 255, 255 - alpha)
+                #     grid[index] = (rect, color, cell)
+                if(cell.TE == True):
+                    grid[index] = (rect, colorB, cell)
+            
+        done = False
+
+        pygame.display.flip()
+        clock.tick(10)
