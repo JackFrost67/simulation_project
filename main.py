@@ -43,6 +43,7 @@ colorB = (0, 0, 0)
 grid = [] # empty grid
 
 done = False # false until configuration are done
+indexSP = 0
 
 ## parameter for the pphysarum simulation
 # parameters for diffusion equation for the cytoplasm
@@ -60,7 +61,7 @@ CON = 0.95
 PAP = 0.8
 
 # threshold of Physarum Mass that encapsulate a NS
-thresholdPM = 0.2
+thresholdPM = 500
 
 def clip(value, min_, max_):
     value_ = [value]
@@ -86,10 +87,7 @@ def getAA(i, j):
         return grid[i * cols + j][2].AA
 
 #TODO ricontrollare il funzionamento e capire perchè i seguire l PM massimo non è un percorso sensato
-def setTE(i, j, countLoop = 0):
-    last = (-1, -1)
-    secondlast = (-1, -1)
-    
+def setTE(i, j, countLoop = 0):    
     if (grid[i * cols + j][2].type != "SP" and countLoop < 500):  
         grid[i * cols + j][2].TE = True
         grid[i * cols + j] = (grid[i * cols + j][0], colorB, grid[i * cols + j][2])
@@ -139,43 +137,43 @@ def diffusion_equation():
 
                 N = S = W = E = NW = NE = SW = SE = 0
                 
-                if (maxCHA == valuesCHA[0]):
-                    NW = PAP
-                    SE = -PAP
-                elif(maxCHA == valuesCHA[1]):
-                    N = PAP
-                    S = -PAP
-                elif (maxCHA == valuesCHA[2]): 
-                    NE = PAP
-                    SW = -PAP
-                elif (maxCHA == valuesCHA[3]):
+                if (maxCHA == getCHA(i - 1, j)):
                     W = PAP
                     E = -PAP
-                elif (maxCHA == valuesCHA[4]):
-                    E = PAP
-                    W = -PAP
-                elif (maxCHA == valuesCHA[5]):
-                    SW = PAP
-                    NE = -PAP
-                elif (maxCHA == valuesCHA[6]):
+                elif (maxCHA == getCHA(i, j - 1)):
                     S = PAP
                     N = -PAP
-                elif (maxCHA == valuesCHA[7]):
+                elif (maxCHA == getCHA(i + 1, j)):
+                    E = PAP
+                    W = -PAP
+                elif(maxCHA == getCHA(i, j + 1)):
+                    N = PAP
+                    S = -PAP
+                elif (maxCHA == getCHA(i - 1, j - 1)):
+                    SW = PAP
+                    NE = -PAP
+                elif (maxCHA == getCHA(i + 1, j - 1)):
                     SE = PAP
                     NW = -PAP
+                elif (maxCHA == getCHA(i - 1, j + 1)):
+                    NW = PAP
+                    SE = -PAP
+                elif (maxCHA == getCHA(i + 1, j + 1)):
+                    NE = PAP
+                    SW = -PAP
 
                 pmVN = (((1 + W) * getPM(i - 1, j)) - (getAA(i - 1, j) * getPM(i, j))
-                    + ((1 + N) * getPM(i, j - 1)) - (getAA(i, j - 1) * getPM(i, j))
+                    + ((1 + S) * getPM(i, j - 1)) - (getAA(i, j - 1) * getPM(i, j))
                     + ((1 + E) * getPM(i + 1, j)) - (getAA(i + 1, j) * getPM(i, j))
-                    + ((1 + S) * getPM(i, j + 1)) - (getAA(i, j + 1) * getPM(i, j))
+                    + ((1 + N) * getPM(i, j + 1)) - (getAA(i, j + 1) * getPM(i, j))
                 )
-                pmMN = (((1 + NW) * getPM(i - 1, j - 1)) - (getAA(i - 1, j - 1) * getPM(i, j))
-                    + ((1 + NE) * getPM(i + 1, j - 1))- (getAA(i + 1, j - 1) * getPM(i, j))
-                    + ((1 + SW) * getPM(i - 1, j + 1)) - (getAA(i - 1, j + 1) * getPM(i, j))
-                    + ((1 + SE) * getPM(i + 1, j + 1)) - (getAA(i + 1, j + 1) * getPM(i, j))
+                pmMN = (((1 + SW) * getPM(i - 1, j - 1)) - (getAA(i - 1, j - 1) * getPM(i, j))
+                    + ((1 + SE) * getPM(i + 1, j - 1))- (getAA(i + 1, j - 1) * getPM(i, j))
+                    + ((1 + NW) * getPM(i - 1, j + 1)) - (getAA(i - 1, j + 1) * getPM(i, j))
+                    + ((1 + NE) * getPM(i + 1, j + 1)) - (getAA(i + 1, j + 1) * getPM(i, j))
                 )
                 
-                grid[i * cols + j][2].PM = getPM(i, j) + PMP1 * (pmVN + PMP2 * pmMN) if getPM(i, j) + PMP1 * (pmVN + PMP2 * pmMN) <= 1000 else 1000
+                grid[i * cols + j][2].PM = getPM(i, j) + PMP1 * (pmVN + PMP2 * pmMN)
 
             if(grid[i * cols + j][2].type != "U" and grid[i * cols + j][2].type != "NS"):
                 
@@ -190,7 +188,7 @@ def diffusion_equation():
                     + (getCHA(i + 1, j + 1) - (getAA(i + 1, j + 1) * getCHA(i, j)))
                 )          
 
-                grid[i * cols + j][2].CHA = CON * ((getCHA(i, j) + CAP1 * (chaVN + CAP2 * chaMN)))
+                grid[i * cols + j][2].CHA = CON * (getCHA(i, j) + CAP1 * (chaVN + CAP2 * chaMN))
                 
                 if(grid[i * cols + j][2].CHA > 100):
                     grid[i * cols + j][2].CHA = 100
@@ -198,10 +196,14 @@ def diffusion_equation():
                     grid[i * cols + j][2].CHA = 0
             
             (rect, color, cell) = grid[i * cols + j]
+
             if(cell.PM != 0 and (cell.type != "NS" and cell.type != "U")):
                 alpha = clip((int)(cell.PM), 0, 255)
                 color = (255, 255, 255 - alpha)
                 grid[i * cols + j] = (rect, color, cell)
+            
+            print(grid[indexSP + 1][2].PM)
+
             pygame.display.flip()
 
 def simulation():
@@ -213,7 +215,7 @@ def simulation():
         if (cell.type == "NS"):
             cellNS.append(cell) 
 
-        if (cell.type == "Sp"):
+        if (cell.type == "SP"):
             cellSP.append(cell) 
 
     #Start the simulation
@@ -316,6 +318,7 @@ if __name__ == "__main__":
                     else:
                         cell.type = "SP" # starting point
                         cell.PM = 100
+                        indexSP = index
                         grid[index] = (rect, colorY, cell)
         
         if done:
@@ -328,10 +331,6 @@ if __name__ == "__main__":
             simulation() # start simulation
             
             for index, (rect, color, cell) in enumerate(grid):
-                # if(cell.PM != 0 and (cell.type != "NS" and cell.type != "U")):
-                #     alpha = clip((int)(cell.PM), 0, 255)
-                #     color = (255, 255, 255 - alpha)
-                #     grid[index] = (rect, color, cell)
                 if(cell.TE == True):
                     grid[index] = (rect, colorB, cell)
             
