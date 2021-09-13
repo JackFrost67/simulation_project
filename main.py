@@ -61,7 +61,7 @@ CON = 0.95
 PAP = 0.8
 
 # threshold of Physarum Mass that encapsulate a NS
-thresholdPM = 500
+thresholdPM = 0.2
 
 def clip(value, min_, max_):
     value_ = [value]
@@ -202,11 +202,19 @@ def diffusion_equation():
                 color = (255, 255, 255 - alpha)
                 grid[i * cols + j] = (rect, color, cell)
             
-            print(grid[indexSP + 1][2].PM)
+            #print(grid[indexSP + 1][2].PM)
 
             pygame.display.flip()
 
 def simulation():
+
+    #TestAA
+    testAA=[]
+    for i in range(rows):
+        testAA.append([])
+        for j in range(cols):
+            testAA[i].append(grid[i*cols +j][2].AA)
+
     #Save all NS cell
     cellNS = []
     cellSP = []
