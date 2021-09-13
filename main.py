@@ -58,7 +58,7 @@ CAP2 = 0.01
 CON = 0.95
 
 # parameter for the attraction to the chemoattractant
-PAP = 0.8
+PAP = 0.7
 
 # threshold of Physarum Mass that encapsulate a NS
 thresholdPM = 0.2
@@ -88,7 +88,7 @@ def getAA(i, j):
 
 #TODO ricontrollare il funzionamento e capire perchè i seguire l PM massimo non è un percorso sensato
 def setTE(i, j, countLoop = 0):    
-    if (grid[i * cols + j][2].type != "SP" and countLoop < 500):  
+    while (grid[i * cols + j][2].type != "SP" and countLoop < 500):  
         grid[i * cols + j][2].TE = True
         grid[i * cols + j] = (grid[i * cols + j][0], colorB, grid[i * cols + j][2])
         
@@ -103,7 +103,6 @@ def setTE(i, j, countLoop = 0):
         i = l
         j = m 
         countLoop = countLoop + 1
-        setTE(i, j, countLoop)
 
     if(grid[i * cols + j][2].type == "SP"):
         grid[i * cols + j][2].TE = True
