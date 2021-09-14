@@ -19,7 +19,9 @@
 import sys
 import numpy as np
 import pygame
+import random
 from pygame.constants import CONTROLLER_AXIS_INVALID
+from pygame.sprite import DirtySprite
 from Cell import Cell
 
 size = (width, height) = 300, 300
@@ -86,7 +88,6 @@ def getAA(i, j):
     else:
         return grid[i * cols + j][2].AA
 
-#TODO ricontrollare il funzionamento e capire perchè i seguire l PM massimo non è un percorso sensato
 def setTE(i, j, countLoop = 0):    
     while (grid[i * cols + j][2].type != "SP" and countLoop < 500):  
         grid[i * cols + j][2].TE = True
@@ -236,10 +237,7 @@ def simulation():
         if (t % 50 != 0):
             diffusion_equation()
         else:
-        #if list of foods is empty, stop the simulation
-            if (not cellNS):
-                return
-
+        #if list of foods is empty, stop the simulation4
             for cell in cellNS:
                 i = cell.index[0]
                 j = cell.index[1]
@@ -253,6 +251,15 @@ def simulation():
                     cellNS.remove(cell)
                     lastTwoCellNS[1] = lastTwoCellNS[0]
                     lastTwoCellNS[0] = cell
+
+            TestPM = []
+            for a in range(rows):
+                TestPM.append([])
+                for b in range(cols):
+                    TestPM[a].append(grid[a * cols + b][2].PM)
+
+            if (not cellNS):
+                return
                     
             if (t >= 5000):
                 if (t >= 10000):  
@@ -275,13 +282,69 @@ def simulation():
 
         print("t", t)
         t = t + 1    
+#TODO implemnt the function for build obstacle
+#We base this method on the assumption that there is only one SP
+def buildObstacle(cellNS, cellSP):
+    if(len(cellSP)!= 1):
+        return 
+    i = cellSP[0].index[0]
+    j = cellSP[0].index[1]
+    for c in cellNS:
+        x = c.index[0]
+        y = c.index[1]
+        if (c.dir == "N" and x <= i):
+            defineObstacle(x + 1, y + 1)
+            defineObstacle(x + 1, y)
+            defineObstacle(x + 1, y - 1)
+            defineObstacle(x    , y + 1)
+            defineObstacle(x    , y - 1)
+        if (c.dir == "S" and x >= i):
+            defineObstacle(x - 1, y + 1)
+            defineObstacle(x - 1, y)
+            defineObstacle(x - 1, y - 1)
+            defineObstacle(x    , y + 1)
+            defineObstacle(x    , y - 1)
+        if (c.dir == "E" and y >= j):
+            defineObstacle(x + 1, y - 1)
+            defineObstacle(x    , y - 1)
+            defineObstacle(x - 1, y - 1)
+            defineObstacle(x + 1, y)
+            defineObstacle(x - 1, y)
+        if (c.dir == "W" and y <= j):
+            defineObstacle(x + 1, y - 1)
+            defineObstacle(x    , y - 1)
+            defineObstacle(x - 1, y - 1)
+            defineObstacle(x + 1, y)
+            defineObstacle(x - 1, y)
+
+
+        
+def defineObstacle(i, j):
+    index = i * cols + j
+    grid[index][2].type = "U"
+    grid[index][2].AA = 0
+    (rect, _, cell) = grid[index]
+    grid[index] = (rect, colorR, cell)
+
+
+def initializationDirection():
+    irand = random.randint(0,3)
+    if (irand == 0):
+        return "N"
+    elif (irand == 1):
+        return "W"
+    elif (irand == 2):
+        return "S"
+    elif (irand == 3):
+        return "E"
 
 if __name__ == "__main__":
     # generating empty grid
     for y in range(rows):
         for x in range(cols):
+            dir = initializationDirection()
             rect = pygame.Rect(x * (squareSize + 1), y * (squareSize + 1), squareSize, squareSize)
-            grid.append((rect, colorW, Cell(index=(y,x))))
+            grid.append((rect, colorW, Cell(index=(y,x), dir = dir)))
 
     simulationOn = True
     while simulationOn:
@@ -329,11 +392,17 @@ if __name__ == "__main__":
                         grid[index] = (rect, colorY, cell)
         
         if done:
-            TestPM = []
-            for a in range(rows):
-                TestPM.append([])
-                for b in range(cols):
-                    TestPM[a].append((grid[a * cols + b][2].PM, grid[a * cols + b][2].CHA))
+            #TODO do a method for  this type of istruction
+            cellNS = []
+            cellSP = []
+            for (_, _ , c) in grid:
+                if (c.type == "NS"):
+                    cellNS.append(c) 
+                if (c.type == "SP"):
+                    cellSP.append(c) 
+
+            buildObstacle(cellNS, cellSP)
+            pygame.display.flip()
 
             simulation() # start simulation
             
