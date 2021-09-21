@@ -1,416 +1,348 @@
-# E = A u U, Entire Area
-# A = Available Area, U = Unavailable Area
-# S = Place where physarium is introduced
-# N = Nutrient Source
-
-# State at time:
-# ST = [ AA, PM, CHA, TE]
-# where:
-#   - AA = Available Area
-#   - PM = Physarum Mass
-#   - CHA = Chemo Attractant
-#   - TE = Tube Existence
-
-# TODO:
-# init of parameters
-# Apply diffusion equation for certian amount of steps
-# Check in any of the N are cover with a certain amount of mould
-
-import sys
-import numpy as np
+from os import set_blocking
+from numpy.lib.shape_base import column_stack
 import pygame
 import random
-from pygame.constants import CONTROLLER_AXIS_INVALID
-from pygame.sprite import DirtySprite
-from Cell import Cell
+import sys
+import numpy as np
+from operator import attrgetter
 
-size = (width, height) = 300, 300
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+YELLOW = (255, 255, 0)
+ 
+# This sets the margin between each cell
+MARGIN = 1
 
-pygame.init()
+class Cell():
+    def __init__(self, ID = None, AA = 1, PM = 0, CHA = 0, TE = False, type = "A", index = None, dir = None):
+        self.ID = ID
+        self.AA = AA
+        self.PM = PM
+        self.CHA = CHA
+        self.TE = TE
+        self.type = type # SP NS U A
+        self.index = index
+        self.dir = dir #N S W E
+        self.neighbors = np.array([])
 
-screen = pygame.display.set_mode(size, pygame.RESIZABLE) # setting screen size
-
-pygame.display.set_caption('Physarum Polycephalum Simulation') # setting name of the screen
-
-clock = pygame.time.Clock() # setting clock
-
-squareSize = 10
-cols, rows = int(screen.get_width() / squareSize), int(screen.get_height() / squareSize)
-
-colorW = (255, 255, 255)
-colorY = (255, 255, 0)
-colorR = (255, 0, 0)
-colorG = (0, 255, 0)
-colorB = (0, 0, 0)
-grid = [] # empty grid
-
-done = False # false until configuration are done
-indexSP = 0
-
-## parameter for the pphysarum simulation
-# parameters for diffusion equation for the cytoplasm
-PMP1 = 0.08
-PMP2 = 0.01
-
-# parameters for the diffusion of the chemoattractant
-CAP1 = 0.05
-CAP2 = 0.01
-
-# consumption percentage of the chemoattractant
-CON = 0.95
-
-# parameter for the attraction to the chemoattractant
-PAP = 0.7
-
-# threshold of Physarum Mass that encapsulate a NS
-thresholdPM = 0.2
-
-def clip(value, min_, max_):
-    value_ = [value]
-    value_ = np.clip(value_, min_, max_)
-    return value_[0]
-
-def getCHA(i, j):
-    if (i < 0 or i >= rows or j < 0 or j >= cols or grid[i * cols + j][2].type == "U"):
-        return 0
-    else:
-        return grid[i * cols + j][2].CHA
-
-def getPM(i, j):
-    if (i < 0 or i >= rows or j < 0 or j >= cols or grid[i * cols + j][2].type == "U"):
-        return 0
-    else:
-        return grid[i * cols + j][2].PM
-
-def getAA(i, j):
-    if (i < 0 or i >= rows or j < 0 or j >= cols or grid[i * cols + j][2].type == "U"):
-        return 0
-    else:
-        return grid[i * cols + j][2].AA
-
-def setTE(i, j, countLoop = 0):    
-    while (grid[i * cols + j][2].type != "SP" and countLoop < 500):  
-        grid[i * cols + j][2].TE = True
-        grid[i * cols + j] = (grid[i * cols + j][0], colorB, grid[i * cols + j][2])
+    def setDirection(self):
+        irand = random.randint(0, 3)
+        if (irand == 0):
+            return "N"
+        elif (irand == 1):
+            return "W"
+        elif (irand == 2):
+            return "S"
+        elif (irand == 3):
+            return "E"
         
-        maxPM = 0
-        for x in range(i - 1, i + 2):
-            for y in range (j - 1, j + 2):
-                if not(x == i and y == j):
-                    if (getPM(x, y) > maxPM):
-                        l = x
-                        m = y 
-                        maxPM = getPM(x, y)
-        i = l
-        j = m 
-        countLoop = countLoop + 1
+    def updateMatrix(self, color):
+        # Create a tuple with the new color and assign it.
+        self.CHA = 0
+        self.PM = 0
+        self.AA = 1
+        self.dir = None
 
-    if(grid[i * cols + j][2].type == "SP"):
-        grid[i * cols + j][2].TE = True
-        return True
-
-    if (countLoop == 500):
-        return False
-
-
-def diffusion_equation():
-    # Now draw the rects. You can unpack the tuples
-    # again directly in the head of the for loop.
-    for rect, color, cell in grid:
-        pygame.draw.rect(screen, color, rect)
-
-    for i in range(rows):
-        for j in range(cols):
-            if (grid[i * cols + j][2].type != "U" and grid[i * cols + j][2].type != "SP"):
-                valuesCHA = [
-                    getCHA(i - 1, j - 1), # 0
-                    getCHA(i, j - 1), # 1
-                    getCHA(i + 1, j - 1), # 2
-                    getCHA(i - 1, j), # 3 
-                    getCHA(i + 1, j), # 4
-                    getCHA(i - 1, j + 1), # 5
-                    getCHA(i, j + 1), # 6
-                    getCHA(i + 1, j + 1) # 7
-                ]
-
-                maxCHA = max(valuesCHA)
-
-                N = S = W = E = NW = NE = SW = SE = 0
-                
-                if (maxCHA == getCHA(i - 1, j)):
-                    W = PAP
-                    E = -PAP
-                elif (maxCHA == getCHA(i, j - 1)):
-                    S = PAP
-                    N = -PAP
-                elif (maxCHA == getCHA(i + 1, j)):
-                    E = PAP
-                    W = -PAP
-                elif(maxCHA == getCHA(i, j + 1)):
-                    N = PAP
-                    S = -PAP
-                elif (maxCHA == getCHA(i - 1, j - 1)):
-                    SW = PAP
-                    NE = -PAP
-                elif (maxCHA == getCHA(i + 1, j - 1)):
-                    SE = PAP
-                    NW = -PAP
-                elif (maxCHA == getCHA(i - 1, j + 1)):
-                    NW = PAP
-                    SE = -PAP
-                elif (maxCHA == getCHA(i + 1, j + 1)):
-                    NE = PAP
-                    SW = -PAP
-
-                pmVN = (((1 + W) * getPM(i - 1, j)) - (getAA(i - 1, j) * getPM(i, j))
-                    + ((1 + S) * getPM(i, j - 1)) - (getAA(i, j - 1) * getPM(i, j))
-                    + ((1 + E) * getPM(i + 1, j)) - (getAA(i + 1, j) * getPM(i, j))
-                    + ((1 + N) * getPM(i, j + 1)) - (getAA(i, j + 1) * getPM(i, j))
-                )
-                pmMN = (((1 + SW) * getPM(i - 1, j - 1)) - (getAA(i - 1, j - 1) * getPM(i, j))
-                    + ((1 + SE) * getPM(i + 1, j - 1))- (getAA(i + 1, j - 1) * getPM(i, j))
-                    + ((1 + NW) * getPM(i - 1, j + 1)) - (getAA(i - 1, j + 1) * getPM(i, j))
-                    + ((1 + NE) * getPM(i + 1, j + 1)) - (getAA(i + 1, j + 1) * getPM(i, j))
-                )
-                
-                grid[i * cols + j][2].PM = getPM(i, j) + PMP1 * (pmVN + PMP2 * pmMN)
-
-            if(grid[i * cols + j][2].type != "U" and grid[i * cols + j][2].type != "NS"):
-                
-                chaVN = ((getCHA(i - 1, j) - (getAA(i - 1, j) * getCHA(i, j)))
-                    + (getCHA(i, j - 1) - (getAA(i, j - 1) * getCHA(i, j)))
-                    + (getCHA(i + 1, j) - (getAA(i + 1, j) * getCHA(i, j)))
-                    + (getCHA(i, j + 1) - (getAA(i, j + 1) * getCHA(i, j)))
-                )
-                chaMN = ((getCHA(i - 1, j - 1) - (getAA(i - 1, j - 1) * getCHA(i, j)))
-                    + (getCHA(i + 1, j - 1) - (getAA(i + 1, j - 1) * getCHA(i, j)))
-                    + (getCHA(i - 1, j + 1) - (getAA(i - 1, j + 1) * getCHA(i, j)))
-                    + (getCHA(i + 1, j + 1) - (getAA(i + 1, j + 1) * getCHA(i, j)))
-                )          
-
-                grid[i * cols + j][2].CHA = CON * (getCHA(i, j) + CAP1 * (chaVN + CAP2 * chaMN))
-                
-                if(grid[i * cols + j][2].CHA > 100):
-                    grid[i * cols + j][2].CHA = 100
-                elif(grid[i * cols + j][2].CHA < 0):
-                    grid[i * cols + j][2].CHA = 0
-            
-            (rect, color, cell) = grid[i * cols + j]
-
-            if(cell.PM != 0 and (cell.type != "NS" and cell.type != "U")):
-                alpha = clip((int)(cell.PM), 0, 255)
-                color = (255, 255, 255 - alpha)
-                grid[i * cols + j] = (rect, color, cell)
-            
-            #print(grid[indexSP + 1][2].PM)
-
-            pygame.display.flip()
-
-def simulation():
-
-    #TestAA
-    testAA=[]
-    for i in range(rows):
-        testAA.append([])
-        for j in range(cols):
-            testAA[i].append(grid[i*cols +j][2].AA)
-
-    #Save all NS cell
-    cellNS = []
-    cellSP = []
-
-    for (_, _ , cell) in grid:
-        if (cell.type == "NS"):
-            cellNS.append(cell) 
-
-        if (cell.type == "SP"):
-            cellSP.append(cell) 
-
-    #Start the simulation
-    t = 1
-    keepOn = True 
-    #lastTwoCellNS[0] last cell
-    #lastTwoCellNS[1] second last cell
-    lastTwoCellNS = [None, None]
-    while (keepOn):
-        #for 50 times we compute the equation
-        if (t % 50 != 0):
-            diffusion_equation()
+        if(color == YELLOW):
+            self.PM = 100
+            self.type = "SP"
+        elif(color == GREEN):
+            self.dir = self.setDirection()
+            self.CHA = 100
+            self.type = "NS"
+        elif(color == RED):
+            self.AA = 0
+            self.type = "U"
         else:
-        #if list of foods is empty, stop the simulation4
-            for cell in cellNS:
-                i = cell.index[0]
-                j = cell.index[1]
+            self.type = "A"
+
+class Block(pygame.sprite.Sprite):
+    # Constructor. Pass in the color of the block,
+    # and its x and y position
+    def __init__(self, simulation, color, size = (50, 50), position = (0, 0)):
+        # Call the parent class (Sprite) constructor
+        super().__init__()
+
+        self._simulation = simulation
+        self._color = color
+
+        # Create an image of the block, and fill it with a color.
+        # This could also be an image loaded from the disk.
+        self.image = pygame.Surface(size)
+        self.image.fill(self._color)
+
+        # Fetch the rectangle object that has the dimensions of the image
+        # Update the position of this object by setting the values of rect.x and rect.y
+        self.rect = self.image.get_rect(topleft = position)
+
+    def update(self):
+        self.rect.x = self._simulation.m_position[0]
+        self.rect.y = self._simulation.m_position[1]
+
+    def updateColor(self, color, alpha = 255):
+        self._color = color
+        self.image.fill(color)
+        self.image.set_alpha(alpha)
+
+class Simulation():
+    ## parameter for the pphysarum simulation
+    # parameters for diffusion equation for the cytoplasm
+    PMP1 = 0.08
+    PMP2 = 0.01
+
+    # parameters for the diffusion of the chemoattractant
+    CAP1 = 0.05
+    CAP2 = 0.01
+
+    # consumption percentage of the chemoattractant
+    CON = 0.95
+
+    # parameter for the attraction to the chemoattractant
+    PAP = 0.7
+
+    # threshold of Physarum Mass that encapsulate a airplaneNS
+    thresholdPM = 0.2
+
+    def __init__(self):
+        pygame.display.set_caption('Physarum Polycephalum Simulation') # setting name of the screen
+        self._running = False
+        self._rows = self._cols = 50
+        self._size = (1000, 1000) 
+        self.screen = pygame.display.set_mode(self._size)
+        self._clock = pygame.time.Clock()
+        self.m_position = (0, 0)
+        self._all = pygame.sprite.Group()
+        self._group = pygame.sprite.Group()
+        self._user_group = pygame.sprite.GroupSingle()
+        self._block = np.empty((self._rows, self._cols), dtype = Block)
+        self._grid = np.empty((self._rows, self._cols), dtype = Cell)
+        self._NS = []
+        self._step = 0
+
+        for row in range(self._rows):
+            for col in range(self._cols):
+                self._grid[row][col] = Cell(index = (row, col))
+
+    def findNeighbors(self):
+        N = self._rows
+        M = self._cols
+
+        arr = self._grid
+        
+        for i in range(N):
+            for j in range(M):
+                if i == 0:
+                    if j == 0:
+                        arr[i][j].neighbors = [None, None, arr[i][j + 1], arr[i + 1][j + 1], arr[i + 1][j], None, None, None] 
+                    elif j == M - 1:
+                        arr[i][j].neighbors = [None, None, None, None, arr[i + 1][j], arr[i + 1][j -1], arr[i][j - 1], None]
+                    else:
+                        arr[i][j].neighbors = [arr[i - 1][j], arr[i - 1][j + 1], arr[i][j + 1], arr[i + 1][j + 1], arr[i + 1][j], None, None, None] 
+                elif i == N - 1:
+                    if j == 0:
+                        arr[i][j].neighbors = [arr[i - 1][j], arr[i - 1][j + 1], arr[i][j + 1], None, None, None, None, None]
+                    elif j == M - 1:
+                        arr[i][j].neighbors = [arr[i - 1][j], None, None, None, None, None, arr[i][j - 1], arr[i - 1][j - 1]]
+                    else:
+                        arr[i][j].neighbors = [arr[i - 1][j], arr[i - 1][j + 1], arr[i][j + 1], None, None, None, arr[i][j - 1], arr[i - 1][j - 1]] 
+                elif j == 0:
+                    arr[i][j].neighbors = [arr[i - 1][j], arr[i - 1][j + 1], arr[i][j + 1], arr[i + 1][j + 1], arr[i + 1][j], None, None, None]
+                elif j == M - 1: 
+                    arr[i][j].neighbors = [arr[i][j - 1], None, None, None, arr[i + 1][j], arr[i + 1][j - 1], arr[i][j - 1], arr[i - 1][j - 1]]
+                else:
+                    arr[i][j].neighbors = [arr[i - 1][j], arr[i - 1][j + 1], arr[i][j + 1], arr[i + 1][j + 1], arr[i + 1][j], arr[i + 1][j - 1], arr[i][j - 1], arr[i - 1][j - 1]]
+
+    def setGrid(self):
+        pixelSize = (((self._size[0] - (MARGIN * (self._rows + 1))) / self._rows), ((self._size[1] - (MARGIN * (self._cols + 1))) / self._cols))
+
+        for row in range(self._rows):
+            for column in range(self._cols):
+                self._block[row][column] = Block(self,
+                            WHITE,
+                            pixelSize,
+                            ((MARGIN + pixelSize[0]) * column + MARGIN, 
+                            (MARGIN + pixelSize[1]) * row + MARGIN))
+                self._group.add(self._block[row][column])
+                self._all.add(self._block[row][column])
+    
+    def findNS(self):
+       for x in self._grid:
+           for y in x:
+                if y.type == "NS":
+                    self._NS.append(y)
+
+    def buildObstacle(self):
+        for cellNS in self._NS:
+            for neighbor in cellNS.neighbors:
+                if neighbor != None:
+                    neighbor.type = "U"
+                    self._block[neighbor.index[0]][neighbor.index[1]].updateColor(RED)
+                        
+            if(cellNS.dir == "N" and cellNS.index[1] - 1 >= 0):
+                self._grid[cellNS.index[0] - 1][cellNS.index[1]].type = "A"
+                self._block[cellNS.index[0] - 1][cellNS.index[1]].updateColor(WHITE)
+            elif(cellNS.dir == "W" and cellNS.index[0] - 1 >= 0):
+                self._grid[cellNS.index[0]][cellNS.index[1] - 1].type = "A"
+                self._block[cellNS.index[0]][cellNS.index[1] - 1].updateColor(WHITE)
+            elif(cellNS.dir == "E" and cellNS.index[0] + 1 < self._rows):
+                self._grid[cellNS.index[0]][cellNS.index[1] + 1].type = "A"
+                self._block[cellNS.index[0]][cellNS.index[1] + 1].updateColor(WHITE)
+            elif(cellNS.dir == "S" and cellNS.index[1] + 1 < self._cols):
+                self._grid[cellNS.index[0] + 1][cellNS.index[1]].type = "A"
+                self._block[cellNS.index[0] + 1][cellNS.index[1]].updateColor(WHITE)
+
+    def diffusionEquation(self):
+        for x in self._grid:
+            for cell in x:
+                if(cell.type != "U" and cell.type != "SP"):
+                    maxCHAcell = max((x for x in cell.neighbors if x != None), key = attrgetter("CHA"))
+
+                    i = cell.index[0]
+                    j = cell.index[1]
+
+                    N = S = W = E = NW = NE = SW = SE = 0
+
+                    if (maxCHAcell.index == (i - 1, j)):
+                        W = self.PAP
+                        E = -self.PAP
+                    elif (maxCHAcell.index == (i, j - 1)):
+                        S = self.PAP
+                        N = -self.PAP
+                    elif (maxCHAcell.index == (i + 1, j)):
+                        E = self.PAP
+                        W = -self.PAP
+                    elif(maxCHAcell.index == (i, j + 1)):
+                        N = self.PAP
+                        S = -self.PAP
+                    elif (maxCHAcell.index == (i - 1, j - 1)):
+                        SW = self.PAP
+                        NE = -self.PAP
+                    elif (maxCHAcell.index == (i + 1, j - 1)):
+                        SE = self.PAP
+                        NW = -self.PAP
+                    elif (maxCHAcell.index == (i - 1, j + 1)):
+                        NW = self.PAP
+                        SE = -self.PAP
+                    elif (maxCHAcell.index == (i + 1, j + 1)):
+                        NE = self.PAP
+                        SW = -self.PAP
+
+                    pmVN = sum([((1 + N) * cell.neighbors[0].PM) - (cell.neighbors[0].AA * cell.PM) if cell.neighbors[0] is not None else 0,
+                                ((1 + E) * cell.neighbors[2].PM) - (cell.neighbors[2].AA * cell.PM) if cell.neighbors[2] is not None else 0,
+                                ((1 + S) * cell.neighbors[4].PM) - (cell.neighbors[4].AA * cell.PM) if cell.neighbors[4] is not None else 0,
+                                ((1 + W) * cell.neighbors[6].PM) - (cell.neighbors[6].AA * cell.PM) if cell.neighbors[6] is not None else 0])
+                    
+                    pmMN = sum([((1 + NE) * cell.neighbors[1].PM) - (cell.neighbors[1].AA * cell.PM) if cell.neighbors[1] is not None else 0,
+                                ((1 + SE) * cell.neighbors[3].PM) - (cell.neighbors[3].AA * cell.PM) if cell.neighbors[3] is not None else 0,
+                                ((1 + SW) * cell.neighbors[5].PM) - (cell.neighbors[5].AA * cell.PM) if cell.neighbors[5] is not None else 0,
+                                ((1 + NW) * cell.neighbors[7].PM) - (cell.neighbors[7].AA * cell.PM) if cell.neighbors[7] is not None else 0])
+                    
+                    cell.PM = cell.PM + self.PMP1 * (pmVN + self.PMP2 * pmMN)
+
+                if(cell.type != "U" and cell.type != "NS"):
+                    chaVN = sum([cell.neighbors[0].CHA - (cell.neighbors[0].AA * cell.PM) if cell.neighbors[0] is not None else 0,
+                                cell.neighbors[2].CHA - (cell.neighbors[2].AA * cell.PM) if cell.neighbors[2] is not None else 0,
+                                cell.neighbors[4].CHA - (cell.neighbors[4].AA * cell.PM) if cell.neighbors[4] is not None else 0,
+                                cell.neighbors[6].CHA - (cell.neighbors[6].AA * cell.PM) if cell.neighbors[6] is not None else 0])
+                    
+                    chaMN = sum([cell.neighbors[1].CHA - (cell.neighbors[1].AA * cell.PM) if cell.neighbors[1] is not None else 0,
+                                cell.neighbors[3].CHA - (cell.neighbors[3].AA * cell.PM) if cell.neighbors[3] is not None else 0,
+                                cell.neighbors[5].CHA - (cell.neighbors[5].AA * cell.PM) if cell.neighbors[5] is not None else 0,
+                                cell.neighbors[7].CHA - (cell.neighbors[7].AA * cell.PM) if cell.neighbors[7] is not None else 0])
+
+                    cell.CHA = self.CON * (cell.CHA + self.CAP1 * (chaVN + self.CAP2 * chaMN))
+
+                    if cell.CHA > 100:
+                        cell.CHA = 100
+                    elif cell.CHA < 0:
+                        cell.CHA = 0
                 
-                if (cell.type == "NS" and cell.PM >= thresholdPM):
-                    keepOn = setTE(i, j)
-                    cell.type = "SP"
-                    cell.CHA = 0
-                    cell.PM = 100
-                    cellSP.append(cell)
-                    cellNS.remove(cell)
-                    lastTwoCellNS[1] = lastTwoCellNS[0]
-                    lastTwoCellNS[0] = cell
+                if cell.PM != 0 and (cell.type != "NS" and cell.type != "U"):
+                    alpha = np.interp(cell.PM, [0, 1000], [0, 100])
+                    self._block[cell.index[0]][cell.index[1]].updateColor(YELLOW, alpha)
 
-            TestPM = []
-            for a in range(rows):
-                TestPM.append([])
-                for b in range(cols):
-                    TestPM[a].append(grid[a * cols + b][2].PM)
+    def run(self):
+        self._user = Block(self, YELLOW, (20, 20))
+        self._user_group.add(self._user)
+        self._all.add(self._user)
 
-            if (not cellNS):
-                return
-                    
-            if (t >= 5000):
-                if (t >= 10000):  
-                    return
+        # main loop
+        while True:
+            if not self._running: # config phase
+                # fill screen 
+                self.screen.fill(BLACK)
 
-                if(t == 5000): 
-                    for c in cellSP:
-                        cell.type = "NS"
-                        cell.CHA = 100
-                        cellNS.append(cell)
-                        cellSP.remove(cell)
-                    
-                    lastTwoCellNS[1].type = "SP"
-                    lastTwoCellNS[1].PM = 100
-                    lastTwoCellNS[1].CHA = 0
-                    cellSP.add(lastTwoCellNS[1])
+                # handling events
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                    elif event.type == pygame.MOUSEMOTION:
+                        self.m_position = (pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
+                    elif event.type == pygame.MOUSEBUTTONDOWN:
+                        j = int(np.round(np.interp(self.m_position[0], [0, self._size[0]], [0, self._rows - 1])))
+                        i = int(np.round(np.interp(self.m_position[1], [0, self._size[1]], [0, self._cols - 1])))
+                        self._block[i][j].updateColor(self._user._color)
+                        self._grid[i][j].updateMatrix(self._user._color)
+                    elif event.type == pygame.KEYDOWN: # press enter to start simulation with the configuration 
+                        if event.key == pygame.K_RETURN:
+                            self.findNeighbors()
+                            self.findNS()
+                            self.buildObstacle()
+                            self._running = True
+                            self._user.image.set_alpha(0)
+                        elif event.key == pygame.K_RIGHT:
+                            if self._user._color == YELLOW:
+                                self._user.updateColor(GREEN)
+                            elif self._user._color == GREEN:
+                                self._user.updateColor(RED)
+                            elif self._user._color == RED:
+                                self._user.updateColor(WHITE)
+                            else:
+                                self._user.updateColor(YELLOW)
 
-                    if (lastTwoCellNS[1] in  cellNS):
-                        cellNS.remove(lastTwoCellNS[1])
+                # update sprite
+                self._user_group.update()
+                self._all.draw(self.screen)
+                
+                # clock cap 60 ticks per seconds
+                self._clock.tick(120)
+                
+                # update
+                pygame.display.flip()
+            
+            else: #running the simulation
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                    elif event.type == pygame.KEYDOWN: # press enter to start simulation with the configuration 
+                        if event.key == pygame.K_RETURN:
+                            self._running = False
+                            self._user.image.set_alpha(255)
+                
+                if (self._step % 50 != 0):
+                    self.diffusionEquation()
+                else:
+                    pass
 
-        print("t", t)
-        t = t + 1    
-#TODO implemnt the function for build obstacle
-#We base this method on the assumption that there is only one SP
-def buildObstacle(cellNS, cellSP):
-    if(len(cellSP)!= 1):
-        return 
-    i = cellSP[0].index[0]
-    j = cellSP[0].index[1]
-    for c in cellNS:
-        x = c.index[0]
-        y = c.index[1]
-        if (c.dir == "N" and x <= i):
-            defineObstacle(x + 1, y + 1)
-            defineObstacle(x + 1, y)
-            defineObstacle(x + 1, y - 1)
-            defineObstacle(x    , y + 1)
-            defineObstacle(x    , y - 1)
-        if (c.dir == "S" and x >= i):
-            defineObstacle(x - 1, y + 1)
-            defineObstacle(x - 1, y)
-            defineObstacle(x - 1, y - 1)
-            defineObstacle(x    , y + 1)
-            defineObstacle(x    , y - 1)
-        if (c.dir == "E" and y >= j):
-            defineObstacle(x + 1, y - 1)
-            defineObstacle(x    , y - 1)
-            defineObstacle(x - 1, y - 1)
-            defineObstacle(x + 1, y)
-            defineObstacle(x - 1, y)
-        if (c.dir == "W" and y <= j):
-            defineObstacle(x + 1, y - 1)
-            defineObstacle(x    , y - 1)
-            defineObstacle(x - 1, y - 1)
-            defineObstacle(x + 1, y)
-            defineObstacle(x - 1, y)
+                # update time step
+                self._step = self._step + 1
 
+                # update sprite
+                self._user_group.update()
+                self._all.draw(self.screen)
 
-        
-def defineObstacle(i, j):
-    index = i * cols + j
-    grid[index][2].type = "U"
-    grid[index][2].AA = 0
-    (rect, _, cell) = grid[index]
-    grid[index] = (rect, colorR, cell)
-
-
-def initializationDirection():
-    irand = random.randint(0,3)
-    if (irand == 0):
-        return "N"
-    elif (irand == 1):
-        return "W"
-    elif (irand == 2):
-        return "S"
-    elif (irand == 3):
-        return "E"
-
+                # clock cap 60 ticks per seconds
+                self._clock.tick(60)
+                pygame.display.flip()
+            
 if __name__ == "__main__":
-    # generating empty grid
-    for y in range(rows):
-        for x in range(cols):
-            dir = initializationDirection()
-            rect = pygame.Rect(x * (squareSize + 1), y * (squareSize + 1), squareSize, squareSize)
-            grid.append((rect, colorW, Cell(index=(y,x), dir = dir)))
-
-    simulationOn = True
-    while simulationOn:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT: # event to exit the simulation
-                simulationOn = False
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.KEYDOWN: # press enter to start simulation with the configuration 
-                if event.key == pygame.K_RETURN:
-                    if done:
-                        done = False
-                    else:
-                        done = True
-
-        # Now draw the rects. You can unpack the tuples
-        # again directly in the head of the for loop.
-        for rect, color, cell in grid:
-            pygame.draw.rect(screen, color, rect)
-
-        # draw source, food and other stuff
-        if pygame.mouse.get_pressed()[0] and not(done):
-            mousePos = pygame.mouse.get_pos()
-            for index, (rect, color, cell) in enumerate(grid):
-                if rect.collidepoint(mousePos):
-                    # Create a tuple with the new color and assign it.
-                    cell.CHA = 0
-                    cell.PM = 0
-                    cell.AA = 1
-                    if color == colorY:
-                        cell.type = "U" # not available
-                        cell.AA = 0
-                        grid[index] = (rect, colorR, cell)
-                    elif color == colorR:
-                        cell.type = "NS" # food
-                        cell.CHA = 100
-                        grid[index] = (rect, colorG, cell)
-                    elif color == colorG:
-                        cell.type = "A" # avalaible
-                        grid[index] = (rect, colorW, cell)
-                    else:
-                        cell.type = "SP" # starting point
-                        cell.PM = 100
-                        indexSP = index
-                        grid[index] = (rect, colorY, cell)
-        
-        if done:
-            #TODO do a method for  this type of istruction
-            cellNS = []
-            cellSP = []
-            for (_, _ , c) in grid:
-                if (c.type == "NS"):
-                    cellNS.append(c) 
-                if (c.type == "SP"):
-                    cellSP.append(c) 
-
-            buildObstacle(cellNS, cellSP)
-            pygame.display.flip()
-
-            simulation() # start simulation
-            
-            for index, (rect, color, cell) in enumerate(grid):
-                if(cell.TE == True):
-                    grid[index] = (rect, colorB, cell)
-            
-        done = False
-
-        pygame.display.flip()
-        clock.tick(10)
+    pygame.init()
+    simulation = Simulation()
+    simulation.setGrid()
+    simulation.run()
+    pygame.quit()
+    sys.exit()
