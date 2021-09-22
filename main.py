@@ -1,5 +1,3 @@
-from os import set_blocking
-from numpy.lib.shape_base import column_stack
 import pygame
 import random
 import sys
@@ -102,7 +100,7 @@ class Simulation():
     # parameter for the attraction to the chemoattractant
     PAP = 0.7
 
-    # threshold of Physarum Mass that encapsulate a airplaneNS
+    # threshold of Physarum Mass that encapsulate a NS
     thresholdPM = 0.2
 
     def __init__(self):
@@ -137,9 +135,9 @@ class Simulation():
                     if j == 0:
                         arr[i][j].neighbors = [None, None, arr[i][j + 1], arr[i + 1][j + 1], arr[i + 1][j], None, None, None] 
                     elif j == M - 1:
-                        arr[i][j].neighbors = [None, None, None, None, arr[i + 1][j], arr[i + 1][j -1], arr[i][j - 1], None]
+                        arr[i][j].neighbors = [None, None, None, None, arr[i + 1][j], arr[i + 1][j - 1], arr[i][j - 1], None]
                     else:
-                        arr[i][j].neighbors = [arr[i - 1][j], arr[i - 1][j + 1], arr[i][j + 1], arr[i + 1][j + 1], arr[i + 1][j], None, None, None] 
+                        arr[i][j].neighbors = [None, None, arr[i][j + 1], arr[i + 1][j + 1], arr[i + 1][j], arr[i + 1][j - 1], arr[i][j - 1], None]
                 elif i == N - 1:
                     if j == 0:
                         arr[i][j].neighbors = [arr[i - 1][j], arr[i - 1][j + 1], arr[i][j + 1], None, None, None, None, None]
@@ -150,7 +148,7 @@ class Simulation():
                 elif j == 0:
                     arr[i][j].neighbors = [arr[i - 1][j], arr[i - 1][j + 1], arr[i][j + 1], arr[i + 1][j + 1], arr[i + 1][j], None, None, None]
                 elif j == M - 1: 
-                    arr[i][j].neighbors = [arr[i][j - 1], None, None, None, arr[i + 1][j], arr[i + 1][j - 1], arr[i][j - 1], arr[i - 1][j - 1]]
+                    arr[i][j].neighbors = [arr[i - 1][j], None, None, None, arr[i + 1][j], arr[i + 1][j - 1], arr[i][j - 1], arr[i - 1][j - 1]]
                 else:
                     arr[i][j].neighbors = [arr[i - 1][j], arr[i - 1][j + 1], arr[i][j + 1], arr[i + 1][j + 1], arr[i + 1][j], arr[i + 1][j - 1], arr[i][j - 1], arr[i - 1][j - 1]]
 
@@ -169,9 +167,10 @@ class Simulation():
     
     def findNS(self):
        for x in self._grid:
-           for y in x:
-                if y.type == "NS":
-                    self._NS.append(y)
+           for cell in x:
+                if cell.type == "NS":
+                    print("adrubale")
+                    self._NS.append(cell)
 
     def buildObstacle(self):
         for cellNS in self._NS:
@@ -229,17 +228,17 @@ class Simulation():
                         NE = self.PAP
                         SW = -self.PAP
 
-                    pmVN = sum([((1 + N) * cell.neighbors[0].PM) - (cell.neighbors[0].AA * cell.PM) if cell.neighbors[0] is not None else 0,
-                                ((1 + E) * cell.neighbors[2].PM) - (cell.neighbors[2].AA * cell.PM) if cell.neighbors[2] is not None else 0,
-                                ((1 + S) * cell.neighbors[4].PM) - (cell.neighbors[4].AA * cell.PM) if cell.neighbors[4] is not None else 0,
-                                ((1 + W) * cell.neighbors[6].PM) - (cell.neighbors[6].AA * cell.PM) if cell.neighbors[6] is not None else 0])
+                    pmVN = sum([((1 + W) * cell.neighbors[0].PM) - (cell.neighbors[0].AA * cell.PM) if cell.neighbors[0] is not None else 0,
+                                ((1 + N) * cell.neighbors[2].PM) - (cell.neighbors[2].AA * cell.PM) if cell.neighbors[2] is not None else 0,
+                                ((1 + E) * cell.neighbors[4].PM) - (cell.neighbors[4].AA * cell.PM) if cell.neighbors[4] is not None else 0,
+                                ((1 + S) * cell.neighbors[6].PM) - (cell.neighbors[6].AA * cell.PM) if cell.neighbors[6] is not None else 0])
                     
-                    pmMN = sum([((1 + NE) * cell.neighbors[1].PM) - (cell.neighbors[1].AA * cell.PM) if cell.neighbors[1] is not None else 0,
-                                ((1 + SE) * cell.neighbors[3].PM) - (cell.neighbors[3].AA * cell.PM) if cell.neighbors[3] is not None else 0,
-                                ((1 + SW) * cell.neighbors[5].PM) - (cell.neighbors[5].AA * cell.PM) if cell.neighbors[5] is not None else 0,
-                                ((1 + NW) * cell.neighbors[7].PM) - (cell.neighbors[7].AA * cell.PM) if cell.neighbors[7] is not None else 0])
+                    pmMN = sum([((1 + NW) * cell.neighbors[1].PM) - (cell.neighbors[1].AA * cell.PM) if cell.neighbors[1] is not None else 0,
+                                ((1 + NE) * cell.neighbors[3].PM) - (cell.neighbors[3].AA * cell.PM) if cell.neighbors[3] is not None else 0,
+                                ((1 + SE) * cell.neighbors[5].PM) - (cell.neighbors[5].AA * cell.PM) if cell.neighbors[5] is not None else 0,
+                                ((1 + SW) * cell.neighbors[7].PM) - (cell.neighbors[7].AA * cell.PM) if cell.neighbors[7] is not None else 0])
                     
-                    cell.PM = cell.PM + self.PMP1 * (pmVN + self.PMP2 * pmMN)
+                    cell.PM = cell.PM + (self.PMP1 * pmVN) + (self.PMP2 * pmMN)
 
                 if(cell.type != "U" and cell.type != "NS"):
                     chaVN = sum([cell.neighbors[0].CHA - (cell.neighbors[0].AA * cell.PM) if cell.neighbors[0] is not None else 0,
@@ -252,7 +251,7 @@ class Simulation():
                                 cell.neighbors[5].CHA - (cell.neighbors[5].AA * cell.PM) if cell.neighbors[5] is not None else 0,
                                 cell.neighbors[7].CHA - (cell.neighbors[7].AA * cell.PM) if cell.neighbors[7] is not None else 0])
 
-                    cell.CHA = self.CON * (cell.CHA + self.CAP1 * (chaVN + self.CAP2 * chaMN))
+                    cell.CHA = self.CON * (cell.CHA + (self.CAP1 * chaVN) + (self.CAP2 * chaMN))
 
                     if cell.CHA > 100:
                         cell.CHA = 100
@@ -260,8 +259,7 @@ class Simulation():
                         cell.CHA = 0
                 
                 if cell.PM != 0 and (cell.type != "NS" and cell.type != "U"):
-                    alpha = np.interp(cell.PM, [0, 1000], [0, 100])
-                    self._block[cell.index[0]][cell.index[1]].updateColor(YELLOW, alpha)
+                    self._block[cell.index[0]][cell.index[1]].updateColor(YELLOW, cell.PM)
 
     def run(self):
         self._user = Block(self, YELLOW, (20, 20))
@@ -308,7 +306,7 @@ class Simulation():
                 self._all.draw(self.screen)
                 
                 # clock cap 60 ticks per seconds
-                self._clock.tick(120)
+                self._clock.tick(60)
                 
                 # update
                 pygame.display.flip()
@@ -335,7 +333,7 @@ class Simulation():
                 self._user_group.update()
                 self._all.draw(self.screen)
 
-                # clock cap 60 ticks per seconds
+                # clock cap n ticks per seconds
                 self._clock.tick(60)
                 pygame.display.flip()
             
