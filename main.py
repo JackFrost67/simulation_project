@@ -169,7 +169,6 @@ class Simulation():
        for x in self._grid:
            for cell in x:
                 if cell.type == "NS":
-                    print("adrubale")
                     self._NS.append(cell)
 
     def buildObstacle(self):
@@ -241,17 +240,17 @@ class Simulation():
                     cell.PM = cell.PM + (self.PMP1 * pmVN) + (self.PMP2 * pmMN)
 
                 if(cell.type != "U" and cell.type != "NS"):
-                    chaVN = sum([cell.neighbors[0].CHA - (cell.neighbors[0].AA * cell.PM) if cell.neighbors[0] is not None else 0,
-                                cell.neighbors[2].CHA - (cell.neighbors[2].AA * cell.PM) if cell.neighbors[2] is not None else 0,
-                                cell.neighbors[4].CHA - (cell.neighbors[4].AA * cell.PM) if cell.neighbors[4] is not None else 0,
-                                cell.neighbors[6].CHA - (cell.neighbors[6].AA * cell.PM) if cell.neighbors[6] is not None else 0])
+                    chaVN = sum([cell.neighbors[0].CHA - (cell.neighbors[0].AA * cell.CHA) if cell.neighbors[0] is not None else 0,
+                                cell.neighbors[2].CHA - (cell.neighbors[2].AA * cell.CHA) if cell.neighbors[2] is not None else 0,
+                                cell.neighbors[4].CHA - (cell.neighbors[4].AA * cell.CHA) if cell.neighbors[4] is not None else 0,
+                                cell.neighbors[6].CHA - (cell.neighbors[6].AA * cell.CHA) if cell.neighbors[6] is not None else 0])
                     
-                    chaMN = sum([cell.neighbors[1].CHA - (cell.neighbors[1].AA * cell.PM) if cell.neighbors[1] is not None else 0,
-                                cell.neighbors[3].CHA - (cell.neighbors[3].AA * cell.PM) if cell.neighbors[3] is not None else 0,
-                                cell.neighbors[5].CHA - (cell.neighbors[5].AA * cell.PM) if cell.neighbors[5] is not None else 0,
-                                cell.neighbors[7].CHA - (cell.neighbors[7].AA * cell.PM) if cell.neighbors[7] is not None else 0])
+                    chaMN = sum([cell.neighbors[1].CHA - (cell.neighbors[1].AA * cell.CHA) if cell.neighbors[1] is not None else 0,
+                                cell.neighbors[3].CHA - (cell.neighbors[3].AA * cell.CHA) if cell.neighbors[3] is not None else 0,
+                                cell.neighbors[5].CHA - (cell.neighbors[5].AA * cell.CHA) if cell.neighbors[5] is not None else 0,
+                                cell.neighbors[7].CHA - (cell.neighbors[7].AA * cell.CHA) if cell.neighbors[7] is not None else 0])
 
-                    cell.CHA = self.CON * (cell.CHA + (self.CAP1 * chaVN) + (self.CAP2 * chaMN))
+                    cell.CHA = self.CON * cell.CHA + (self.CAP1 * (chaVN + self.CAP2 * chaMN))
 
                     if cell.CHA > 100:
                         cell.CHA = 100
