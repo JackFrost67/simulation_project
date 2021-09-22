@@ -26,8 +26,7 @@ class Cell():
         self.neighbors = np.array([])
 
     def setDirection(self):
-        #irand = random.randint(0, 3)
-        irand = 0
+        irand = random.randint(0, 3)
         if (irand == 0):
             return "N"
         elif (irand == 1):
@@ -44,7 +43,7 @@ class Cell():
         self.AA = 1
         self.dir = None
 
-        if(color == YELLOW):
+        if(color == BLACK):
             self.PM = 100
             self.type = "SP"
         elif(color == GREEN):
@@ -88,15 +87,15 @@ class Block(pygame.sprite.Sprite):
 class Simulation():
     ## parameter for the pphysarum simulation
     # parameters for diffusion equation for the cytoplasm
-    PMP1 = 0.2
-    PMP2 = 0.075
+    PMP1 = 0.08
+    PMP2 = 0.01
 
     # parameters for the diffusion of the chemoattractant
-    CAP1 = 0.5
-    CAP2 = 0.1
+    CAP1 = 0.05
+    CAP2 = 0.01
 
     # consumption percentage of the chemoattractant
-    CON = 0.85
+    CON = 0.95
 
     # parameter for the attraction to the chemoattractant
     PAP = 0.7
@@ -118,6 +117,7 @@ class Simulation():
         self._block = np.empty((self._rows, self._cols), dtype = Block)
         self._grid = np.empty((self._rows, self._cols), dtype = Cell)
         self._NS = []
+        self._SP = []
         self._step = 0
 
         for row in range(self._rows):
@@ -171,6 +171,12 @@ class Simulation():
            for cell in x:
                 if cell.type == "NS":
                     self._NS.append(cell)
+    
+    def findSP(self):
+       for x in self._grid:
+           for cell in x:
+                if cell.type == "SP":
+                    self._SP.append(cell)
 
     def buildObstacle(self):
         for cellNS in self._NS:
@@ -182,10 +188,10 @@ class Simulation():
             if(cellNS.dir == "N" and cellNS.index[1] - 1 >= 0):
                 self._grid[cellNS.index[0] - 1][cellNS.index[1]].type = "A"
                 self._block[cellNS.index[0] - 1][cellNS.index[1]].updateColor(WHITE)
-                self._grid[cellNS.index[0] - 1][cellNS.index[1] - 1].type = "A"
-                self._block[cellNS.index[0] - 1][cellNS.index[1] - 1].updateColor(WHITE)
-                self._grid[cellNS.index[0] - 1][cellNS.index[1] + 1].type = "A"
-                self._block[cellNS.index[0] - 1][cellNS.index[1] + 1].updateColor(WHITE)
+                # self._grid[cellNS.index[0] - 1][cellNS.index[1] - 1].type = "A"
+                # self._block[cellNS.index[0] - 1][cellNS.index[1] - 1].updateColor(WHITE)
+                # self._grid[cellNS.index[0] - 1][cellNS.index[1] + 1].type = "A"
+                # self._block[cellNS.index[0] - 1][cellNS.index[1] + 1].updateColor(WHITE)
             elif(cellNS.dir == "W" and cellNS.index[0] - 1 >= 0):
                 self._grid[cellNS.index[0]][cellNS.index[1] - 1].type = "A"
                 self._block[cellNS.index[0]][cellNS.index[1] - 1].updateColor(WHITE)
@@ -244,6 +250,12 @@ class Simulation():
                     
                     cell.PM = cell.PM + (self.PMP1 * (pmVN + self.PMP2 * pmMN))
 
+
+                    if cell.PM > 100:
+                        cell.PM = 100
+                    elif cell.PM < 0:
+                        cell.PM = 0
+
                 if(cell.type != "U" and cell.type != "NS"):
                     chaVN = sum([cell.neighbors[0].CHA - (cell.neighbors[0].AA * cell.CHA) if cell.neighbors[0] is not None else 0,
                                 cell.neighbors[2].CHA - (cell.neighbors[2].AA * cell.CHA) if cell.neighbors[2] is not None else 0,
@@ -262,29 +274,30 @@ class Simulation():
                     elif cell.CHA < 0:
                         cell.CHA = 0
                 
-                if cell.PM != 0 and (cell.type != "NS" and cell.type != "U"):
+                if cell.PM != 0 and cell.TE != True and cell.type != "SP" and cell.type != "NS" and cell.type != "U":
                     self._block[cell.index[0]][cell.index[1]].updateColor(YELLOW, cell.PM)
     
     def setTE(self):
         for cellNS in self._NS:
             if cellNS.PM >= self.thresholdPM :
-                c = cellNS
+                cell = cellNS
                 count = 0
 
-                while (c.type != "SP" and count < 500):
-                    c.TE = True
-                    self._block[c.index[0]][c.index[1]].updateColor(BLACK)
+                while (cell.type != "SP" and count <= 500):
+                    cell.TE = True
+                    self._block[cell.index[0]][cell.index[1]].updateColor(BLACK)
 
-                    c = max((x for x in c.neighbors if x != None), key = attrgetter("PM"))
+                    cell = max((x for x in cell.neighbors if x != None), key = attrgetter("PM"))
                     count = count + 1
                 
                 self._NS.remove(cellNS)
                 cellNS.CHA = 0
                 cellNS.PM = 100
                 cellNS.type = "SP"
+                self._SP.append(cellNS)
 
     def run(self):
-        self._user = Block(self, YELLOW, (20, 20))
+        self._user = Block(self, BLACK, (20, 20))
         self._user_group.add(self._user)
         self._all.add(self._user)
 
@@ -310,18 +323,19 @@ class Simulation():
                         if event.key == pygame.K_RETURN:
                             self.findNeighbors()
                             self.findNS()
+                            self.findSP()
                             self.buildObstacle()
                             self._running = True
                             self._user.image.set_alpha(0)
                         elif event.key == pygame.K_RIGHT:
-                            if self._user._color == YELLOW:
+                            if self._user._color == BLACK:
                                 self._user.updateColor(GREEN)
                             elif self._user._color == GREEN:
                                 self._user.updateColor(RED)
                             elif self._user._color == RED:
                                 self._user.updateColor(WHITE)
                             else:
-                                self._user.updateColor(YELLOW)
+                                self._user.updateColor(BLACK)
 
                 # update sprite
                 self._user_group.update()
@@ -345,9 +359,23 @@ class Simulation():
                 
                 if (self._step % 50 != 0):
                     self.diffusionEquation()
+                elif (self._step == 5000):
+                    cellSP = self._SP[len(self._SP) - 2]
+                    self._SP.remove(cellSP)
+
+                    for cell in self._SP:
+                        cell.type = "NS"
+                        cell.PM = 0
+                        cell.CHA = 100
+                        self._NS.append(cell)
+
+                    self._SP = [cellSP]
                 else:
                     self.setTE()
-                    print(self._step)
+                        
+                if (self._step >= 5000):
+                    if (self._step >= 10000):  
+                        return
 
                 # update time step
                 self._step = self._step + 1
