@@ -26,7 +26,8 @@ class Cell():
         self.neighbors = np.array([])
 
     def setDirection(self):
-        irand = random.randint(0, 3)
+        #irand = random.randint(0, 3)
+        irand = 0
         if (irand == 0):
             return "N"
         elif (irand == 1):
@@ -87,15 +88,15 @@ class Block(pygame.sprite.Sprite):
 class Simulation():
     ## parameter for the pphysarum simulation
     # parameters for diffusion equation for the cytoplasm
-    PMP1 = 0.08
-    PMP2 = 0.01
+    PMP1 = 0.2
+    PMP2 = 0.075
 
     # parameters for the diffusion of the chemoattractant
-    CAP1 = 0.05
-    CAP2 = 0.01
+    CAP1 = 0.5
+    CAP2 = 0.1
 
     # consumption percentage of the chemoattractant
-    CON = 0.95
+    CON = 0.85
 
     # parameter for the attraction to the chemoattractant
     PAP = 0.7
@@ -181,6 +182,10 @@ class Simulation():
             if(cellNS.dir == "N" and cellNS.index[1] - 1 >= 0):
                 self._grid[cellNS.index[0] - 1][cellNS.index[1]].type = "A"
                 self._block[cellNS.index[0] - 1][cellNS.index[1]].updateColor(WHITE)
+                self._grid[cellNS.index[0] - 1][cellNS.index[1] - 1].type = "A"
+                self._block[cellNS.index[0] - 1][cellNS.index[1] - 1].updateColor(WHITE)
+                self._grid[cellNS.index[0] - 1][cellNS.index[1] + 1].type = "A"
+                self._block[cellNS.index[0] - 1][cellNS.index[1] + 1].updateColor(WHITE)
             elif(cellNS.dir == "W" and cellNS.index[0] - 1 >= 0):
                 self._grid[cellNS.index[0]][cellNS.index[1] - 1].type = "A"
                 self._block[cellNS.index[0]][cellNS.index[1] - 1].updateColor(WHITE)
@@ -237,7 +242,7 @@ class Simulation():
                                 ((1 + SE) * cell.neighbors[5].PM) - (cell.neighbors[5].AA * cell.PM) if cell.neighbors[5] is not None else 0,
                                 ((1 + SW) * cell.neighbors[7].PM) - (cell.neighbors[7].AA * cell.PM) if cell.neighbors[7] is not None else 0])
                     
-                    cell.PM = cell.PM + (self.PMP1 * pmVN) + (self.PMP2 * pmMN)
+                    cell.PM = cell.PM + (self.PMP1 * (pmVN + self.PMP2 * pmMN))
 
                 if(cell.type != "U" and cell.type != "NS"):
                     chaVN = sum([cell.neighbors[0].CHA - (cell.neighbors[0].AA * cell.CHA) if cell.neighbors[0] is not None else 0,
@@ -259,6 +264,24 @@ class Simulation():
                 
                 if cell.PM != 0 and (cell.type != "NS" and cell.type != "U"):
                     self._block[cell.index[0]][cell.index[1]].updateColor(YELLOW, cell.PM)
+    
+    def setTE(self):
+        for cellNS in self._NS:
+            if cellNS.PM >= self.thresholdPM :
+                c = cellNS
+                count = 0
+
+                while (c.type != "SP" and count < 500):
+                    c.TE = True
+                    self._block[c.index[0]][c.index[1]].updateColor(BLACK)
+
+                    c = max((x for x in c.neighbors if x != None), key = attrgetter("PM"))
+                    count = count + 1
+                
+                self._NS.remove(cellNS)
+                cellNS.CHA = 0
+                cellNS.PM = 100
+                cellNS.type = "SP"
 
     def run(self):
         self._user = Block(self, YELLOW, (20, 20))
@@ -323,7 +346,8 @@ class Simulation():
                 if (self._step % 50 != 0):
                     self.diffusionEquation()
                 else:
-                    pass
+                    self.setTE()
+                    print(self._step)
 
                 # update time step
                 self._step = self._step + 1
