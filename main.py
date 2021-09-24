@@ -4,11 +4,13 @@ import sys
 import numpy as np
 from operator import attrgetter
 
+# color palette
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 YELLOW = (255, 255, 0)
+BLUE = (0, 0, 255)
  
 # This sets the margin between each cell
 MARGIN = 1
@@ -43,12 +45,12 @@ class Cell():
         self.AA = 1
         self.dir = None
 
-        if(color == BLACK):
-            self.PM = 100
+        if(color == BLUE):
+            self.PM = Simulation.defaultPM
             self.type = "SP"
         elif(color == GREEN):
             self.dir = self.setDirection()
-            self.CHA = 100
+            self.CHA = Simulation.defaultCHA
             self.type = "NS"
         elif(color == RED):
             self.AA = 0
@@ -92,21 +94,25 @@ class Simulation():
 
     # parameters for the diffusion of the chemoattractant
     CAP1 = 0.05
-    CAP2 = 0.01
+    CAP2 = 0.02
 
     # consumption percentage of the chemoattractant
     CON = 0.95
 
     # parameter for the attraction to the chemoattractant
-    PAP = 0.7
+    PAP = 0.8
 
     # threshold of Physarum Mass that encapsulate a NS
     thresholdPM = 0.2
 
+    defaultCHA = 500
+    defaultPM = 500
+
     def __init__(self):
         pygame.display.set_caption('Physarum Polycephalum Simulation') # setting name of the screen
         self._running = False
-        self._rows = self._cols = 50
+        self._done = False
+        self._rows = self._cols = 35
         self._size = (1000, 1000) 
         self.screen = pygame.display.set_mode(self._size)
         self._clock = pygame.time.Clock()
@@ -186,21 +192,25 @@ class Simulation():
                     self._block[neighbor.index[0]][neighbor.index[1]].updateColor(RED)
                         
             if(cellNS.dir == "N" and cellNS.index[1] - 1 >= 0):
-                self._grid[cellNS.index[0] - 1][cellNS.index[1]].type = "A"
+                self._grid[cellNS.index[0] - 1][cellNS.index[1]].type = self._grid[cellNS.index[0] - 1][cellNS.index[1] - 1].type = self._grid[cellNS.index[0] - 1][cellNS.index[1] + 1].type = "A"
                 self._block[cellNS.index[0] - 1][cellNS.index[1]].updateColor(WHITE)
-                # self._grid[cellNS.index[0] - 1][cellNS.index[1] - 1].type = "A"
-                # self._block[cellNS.index[0] - 1][cellNS.index[1] - 1].updateColor(WHITE)
-                # self._grid[cellNS.index[0] - 1][cellNS.index[1] + 1].type = "A"
-                # self._block[cellNS.index[0] - 1][cellNS.index[1] + 1].updateColor(WHITE)
+                self._block[cellNS.index[0] - 1][cellNS.index[1] - 1].updateColor(WHITE)
+                self._block[cellNS.index[0] - 1][cellNS.index[1] + 1].updateColor(WHITE)
             elif(cellNS.dir == "W" and cellNS.index[0] - 1 >= 0):
-                self._grid[cellNS.index[0]][cellNS.index[1] - 1].type = "A"
+                self._grid[cellNS.index[0]][cellNS.index[1] - 1].type = self._grid[cellNS.index[0] - 1][cellNS.index[1] - 1].type = self._grid[cellNS.index[0] + 1][cellNS.index[1] - 1].type = "A"
                 self._block[cellNS.index[0]][cellNS.index[1] - 1].updateColor(WHITE)
+                self._block[cellNS.index[0] - 1][cellNS.index[1] - 1].updateColor(WHITE)
+                self._block[cellNS.index[0] + 1][cellNS.index[1] - 1].updateColor(WHITE)
             elif(cellNS.dir == "E" and cellNS.index[0] + 1 < self._rows):
-                self._grid[cellNS.index[0]][cellNS.index[1] + 1].type = "A"
+                self._grid[cellNS.index[0]][cellNS.index[1] + 1].type =  self._grid[cellNS.index[0] - 1][cellNS.index[1] + 1].type = self._grid[cellNS.index[0] + 1][cellNS.index[1] + 1].type = "A"
                 self._block[cellNS.index[0]][cellNS.index[1] + 1].updateColor(WHITE)
+                self._block[cellNS.index[0] - 1][cellNS.index[1] + 1].updateColor(WHITE)
+                self._block[cellNS.index[0] + 1][cellNS.index[1] + 1].updateColor(WHITE)
             elif(cellNS.dir == "S" and cellNS.index[1] + 1 < self._cols):
-                self._grid[cellNS.index[0] + 1][cellNS.index[1]].type = "A"
+                self._grid[cellNS.index[0] + 1][cellNS.index[1]].type = self._grid[cellNS.index[0] + 1][cellNS.index[1] - 1].type = self._grid[cellNS.index[0] + 1][cellNS.index[1] + 1].type = "A"
                 self._block[cellNS.index[0] + 1][cellNS.index[1]].updateColor(WHITE)
+                self._block[cellNS.index[0] + 1][cellNS.index[1] - 1].updateColor(WHITE)
+                self._block[cellNS.index[0] + 1][cellNS.index[1] + 1].updateColor(WHITE)
 
     def diffusionEquation(self):
         for x in self._grid:
@@ -238,39 +248,38 @@ class Simulation():
                         NE = self.PAP
                         SW = -self.PAP
 
-                    pmVN = sum([((1 + W) * cell.neighbors[0].PM) - (cell.neighbors[0].AA * cell.PM) if cell.neighbors[0] is not None else 0,
-                                ((1 + N) * cell.neighbors[2].PM) - (cell.neighbors[2].AA * cell.PM) if cell.neighbors[2] is not None else 0,
-                                ((1 + E) * cell.neighbors[4].PM) - (cell.neighbors[4].AA * cell.PM) if cell.neighbors[4] is not None else 0,
-                                ((1 + S) * cell.neighbors[6].PM) - (cell.neighbors[6].AA * cell.PM) if cell.neighbors[6] is not None else 0])
+                    pmVN = sum([(((1 + W) * cell.neighbors[0].PM) - (cell.neighbors[0].AA * cell.PM)) if cell.neighbors[0] is not None else 0,
+                                (((1 + N) * cell.neighbors[2].PM) - (cell.neighbors[2].AA * cell.PM)) if cell.neighbors[2] is not None else 0,
+                                (((1 + E) * cell.neighbors[4].PM) - (cell.neighbors[4].AA * cell.PM)) if cell.neighbors[4] is not None else 0,
+                                (((1 + S) * cell.neighbors[6].PM) - (cell.neighbors[6].AA * cell.PM)) if cell.neighbors[6] is not None else 0])
                     
-                    pmMN = sum([((1 + NW) * cell.neighbors[1].PM) - (cell.neighbors[1].AA * cell.PM) if cell.neighbors[1] is not None else 0,
-                                ((1 + NE) * cell.neighbors[3].PM) - (cell.neighbors[3].AA * cell.PM) if cell.neighbors[3] is not None else 0,
-                                ((1 + SE) * cell.neighbors[5].PM) - (cell.neighbors[5].AA * cell.PM) if cell.neighbors[5] is not None else 0,
-                                ((1 + SW) * cell.neighbors[7].PM) - (cell.neighbors[7].AA * cell.PM) if cell.neighbors[7] is not None else 0])
+                    pmMN = sum([(((1 + NW) * cell.neighbors[1].PM) - (cell.neighbors[1].AA * cell.PM)) if cell.neighbors[1] is not None else 0,
+                                (((1 + NE) * cell.neighbors[3].PM) - (cell.neighbors[3].AA * cell.PM)) if cell.neighbors[3] is not None else 0,
+                                (((1 + SE) * cell.neighbors[5].PM) - (cell.neighbors[5].AA * cell.PM)) if cell.neighbors[5] is not None else 0,
+                                (((1 + SW) * cell.neighbors[7].PM) - (cell.neighbors[7].AA * cell.PM)) if cell.neighbors[7] is not None else 0])
                     
                     cell.PM = cell.PM + (self.PMP1 * (pmVN + self.PMP2 * pmMN))
 
-
-                    if cell.PM > 100:
-                        cell.PM = 100
+                    if cell.PM > self.defaultPM:
+                        cell.PM = self.defaultPM
                     elif cell.PM < 0:
                         cell.PM = 0
 
                 if(cell.type != "U" and cell.type != "NS"):
-                    chaVN = sum([cell.neighbors[0].CHA - (cell.neighbors[0].AA * cell.CHA) if cell.neighbors[0] is not None else 0,
-                                cell.neighbors[2].CHA - (cell.neighbors[2].AA * cell.CHA) if cell.neighbors[2] is not None else 0,
-                                cell.neighbors[4].CHA - (cell.neighbors[4].AA * cell.CHA) if cell.neighbors[4] is not None else 0,
-                                cell.neighbors[6].CHA - (cell.neighbors[6].AA * cell.CHA) if cell.neighbors[6] is not None else 0])
+                    chaVN = sum([(cell.neighbors[0].CHA - (cell.neighbors[0].AA * cell.CHA)) if cell.neighbors[0] is not None else 0,
+                                (cell.neighbors[2].CHA - (cell.neighbors[2].AA * cell.CHA)) if cell.neighbors[2] is not None else 0,
+                                (cell.neighbors[4].CHA - (cell.neighbors[4].AA * cell.CHA)) if cell.neighbors[4] is not None else 0,
+                                (cell.neighbors[6].CHA - (cell.neighbors[6].AA * cell.CHA)) if cell.neighbors[6] is not None else 0])
                     
-                    chaMN = sum([cell.neighbors[1].CHA - (cell.neighbors[1].AA * cell.CHA) if cell.neighbors[1] is not None else 0,
-                                cell.neighbors[3].CHA - (cell.neighbors[3].AA * cell.CHA) if cell.neighbors[3] is not None else 0,
-                                cell.neighbors[5].CHA - (cell.neighbors[5].AA * cell.CHA) if cell.neighbors[5] is not None else 0,
-                                cell.neighbors[7].CHA - (cell.neighbors[7].AA * cell.CHA) if cell.neighbors[7] is not None else 0])
+                    chaMN = sum([(cell.neighbors[1].CHA - (cell.neighbors[1].AA * cell.CHA)) if cell.neighbors[1] is not None else 0,
+                                (cell.neighbors[3].CHA - (cell.neighbors[3].AA * cell.CHA)) if cell.neighbors[3] is not None else 0,
+                                (cell.neighbors[5].CHA - (cell.neighbors[5].AA * cell.CHA)) if cell.neighbors[5] is not None else 0,
+                                (cell.neighbors[7].CHA - (cell.neighbors[7].AA * cell.CHA)) if cell.neighbors[7] is not None else 0])
 
                     cell.CHA = self.CON * cell.CHA + (self.CAP1 * (chaVN + self.CAP2 * chaMN))
 
-                    if cell.CHA > 100:
-                        cell.CHA = 100
+                    if cell.CHA > self.defaultCHA:
+                        cell.CHA = self.defaultCHA
                     elif cell.CHA < 0:
                         cell.CHA = 0
                 
@@ -292,12 +301,15 @@ class Simulation():
                 
                 self._NS.remove(cellNS)
                 cellNS.CHA = 0
-                cellNS.PM = 100
+                cellNS.PM = self.defaultPM
                 cellNS.type = "SP"
                 self._SP.append(cellNS)
 
+                if not self._NS:
+                    self._done = True
+
     def run(self):
-        self._user = Block(self, BLACK, (20, 20))
+        self._user = Block(self, BLUE, (20, 20))
         self._user_group.add(self._user)
         self._all.add(self._user)
 
@@ -328,14 +340,14 @@ class Simulation():
                             self._running = True
                             self._user.image.set_alpha(0)
                         elif event.key == pygame.K_RIGHT:
-                            if self._user._color == BLACK:
+                            if self._user._color == BLUE:
                                 self._user.updateColor(GREEN)
                             elif self._user._color == GREEN:
                                 self._user.updateColor(RED)
                             elif self._user._color == RED:
                                 self._user.updateColor(WHITE)
                             else:
-                                self._user.updateColor(BLACK)
+                                self._user.updateColor(BLUE)
 
                 # update sprite
                 self._user_group.update()
@@ -347,35 +359,33 @@ class Simulation():
                 # update
                 pygame.display.flip()
             
-            else: #running the simulation
+            elif not self._done: #running the simulation
                 for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        pygame.quit()
-                        sys.exit()
-                    elif event.type == pygame.KEYDOWN: # press enter to start simulation with the configuration 
+                    if event.type == pygame.KEYDOWN: # press enter to start simulation with the configuration 
                         if event.key == pygame.K_RETURN:
                             self._running = False
                             self._user.image.set_alpha(255)
                 
-                if (self._step % 50 != 0):
+                print(self._step)
+                if (self._step % 100 != 0):
                     self.diffusionEquation()
-                elif (self._step == 5000):
+                elif (self._step == 50000):
                     cellSP = self._SP[len(self._SP) - 2]
                     self._SP.remove(cellSP)
 
                     for cell in self._SP:
                         cell.type = "NS"
                         cell.PM = 0
-                        cell.CHA = 100
+                        cell.CHA = self.defaultCHA
                         self._NS.append(cell)
 
                     self._SP = [cellSP]
                 else:
                     self.setTE()
                         
-                if (self._step >= 5000):
-                    if (self._step >= 10000):  
-                        return
+                if (self._step >= 50000):
+                    if (self._step >= 100000): 
+                        raise NameError('Too many iterations, giving up')
 
                 # update time step
                 self._step = self._step + 1
@@ -385,8 +395,14 @@ class Simulation():
                 self._all.draw(self.screen)
 
                 # clock cap n ticks per seconds
-                self._clock.tick(60)
+                self._clock.tick(120)
                 pygame.display.flip()
+            
+            else:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
             
 if __name__ == "__main__":
     pygame.init()
