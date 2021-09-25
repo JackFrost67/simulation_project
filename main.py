@@ -55,7 +55,7 @@ class Cell():
         elif(color == RED):
             self.AA = 0
             self.type = "U"
-        else:
+        elif(color == WHITE):
             self.type = "A"
 
 class Block(pygame.sprite.Sprite):
@@ -105,18 +105,20 @@ class Simulation():
     # threshold of Physarum Mass that encapsulate a NS
     thresholdPM = 0.2
 
-    defaultCHA = 500
-    defaultPM = 500
+    defaultCHA = 2000
+    defaultPM = 2000
 
     def __init__(self):
         pygame.display.set_caption('Physarum Polycephalum Simulation') # setting name of the screen
+        pygame.mouse.set_visible(0)
+
         self._running = False
         self._done = False
         self._rows = self._cols = 35
         self._size = (1000, 1000) 
         self.screen = pygame.display.set_mode(self._size)
         self._clock = pygame.time.Clock()
-        self.m_position = (0, 0)
+        self.m_position = (pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
         self._all = pygame.sprite.Group()
         self._group = pygame.sprite.Group()
         self._user_group = pygame.sprite.GroupSingle()
@@ -308,10 +310,13 @@ class Simulation():
                 if not self._NS:
                     self._done = True
 
-    def run(self):
+    def run(self):        
         self._user = Block(self, BLUE, (20, 20))
         self._user_group.add(self._user)
         self._all.add(self._user)
+
+        self._user_group.update()
+        self._all.draw(self.screen)
 
         # main loop
         while True:
@@ -326,11 +331,16 @@ class Simulation():
                         sys.exit()
                     elif event.type == pygame.MOUSEMOTION:
                         self.m_position = (pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
-                    elif event.type == pygame.MOUSEBUTTONDOWN:
+                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                         j = int(np.round(np.interp(self.m_position[0], [0, self._size[0]], [0, self._rows - 1])))
                         i = int(np.round(np.interp(self.m_position[1], [0, self._size[1]], [0, self._cols - 1])))
                         self._block[i][j].updateColor(self._user._color)
                         self._grid[i][j].updateMatrix(self._user._color)
+                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+                        j = int(np.round(np.interp(self.m_position[0], [0, self._size[0]], [0, self._rows - 1])))
+                        i = int(np.round(np.interp(self.m_position[1], [0, self._size[1]], [0, self._cols - 1])))
+                        self._block[i][j].updateColor(WHITE)
+                        self._grid[i][j].updateMatrix(WHITE)
                     elif event.type == pygame.KEYDOWN: # press enter to start simulation with the configuration 
                         if event.key == pygame.K_RETURN:
                             self.findNeighbors()
@@ -345,8 +355,6 @@ class Simulation():
                             elif self._user._color == GREEN:
                                 self._user.updateColor(RED)
                             elif self._user._color == RED:
-                                self._user.updateColor(WHITE)
-                            else:
                                 self._user.updateColor(BLUE)
 
                 # update sprite
@@ -360,11 +368,23 @@ class Simulation():
                 pygame.display.flip()
             
             elif not self._done: #running the simulation
+                pause = True
                 for event in pygame.event.get():
-                    if event.type == pygame.KEYDOWN: # press enter to start simulation with the configuration 
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                    elif event.type == pygame.KEYDOWN: # press enter to start simulation with the configuration 
                         if event.key == pygame.K_RETURN:
                             self._running = False
                             self._user.image.set_alpha(255)
+                            self.__init__()
+                            self.setGrid()
+                            self.run()
+                        elif event.key == pygame.K_s:
+                            while pause:
+                                for event in pygame.event.get():
+                                    if event.key == pygame.K_s:
+                                        pause = False
                 
                 print(self._step)
                 if (self._step % 100 != 0):
@@ -403,6 +423,13 @@ class Simulation():
                     if event.type == pygame.QUIT:
                         pygame.quit()
                         sys.exit()
+                    elif event.type == pygame.KEYDOWN: # press enter to start simulation with the configuration 
+                        if event.key == pygame.K_RETURN:
+                            self._running = False
+                            self._user.image.set_alpha(255)
+                            self.__init__()
+                            self.setGrid()
+                            self.run()
             
 if __name__ == "__main__":
     pygame.init()
