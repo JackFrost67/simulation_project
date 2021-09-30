@@ -103,7 +103,7 @@ class Simulation():
     PAP = 0.8
 
     # threshold of Physarum Mass that encapsulate a NS
-    thresholdPM = 20
+    thresholdPM = 0.2
 
     defaultCHA = 100
     defaultPM = 10000
@@ -258,15 +258,15 @@ class Simulation():
                         NE = self.PAP
                         SW = -self.PAP
 
-                    pmVN = sum([(((1 + W) * cell.neighbors[0].PM) - (cell.neighbors[0].AA * cell.PM)) if cell.neighbors[0] is not None else 0,
-                                (((1 + N) * cell.neighbors[2].PM) - (cell.neighbors[2].AA * cell.PM)) if cell.neighbors[2] is not None else 0,
-                                (((1 + E) * cell.neighbors[4].PM) - (cell.neighbors[4].AA * cell.PM)) if cell.neighbors[4] is not None else 0,
-                                (((1 + S) * cell.neighbors[6].PM) - (cell.neighbors[6].AA * cell.PM)) if cell.neighbors[6] is not None else 0])
-                    
-                    pmMN = sum([(((1 + NW) * cell.neighbors[1].PM) - (cell.neighbors[1].AA * cell.PM)) if cell.neighbors[1] is not None else 0,
-                                (((1 + NE) * cell.neighbors[3].PM) - (cell.neighbors[3].AA * cell.PM)) if cell.neighbors[3] is not None else 0,
-                                (((1 + SE) * cell.neighbors[5].PM) - (cell.neighbors[5].AA * cell.PM)) if cell.neighbors[5] is not None else 0,
-                                (((1 + SW) * cell.neighbors[7].PM) - (cell.neighbors[7].AA * cell.PM)) if cell.neighbors[7] is not None else 0])
+                    pmVN = sum([(((1 + W) * cell.neighbors[0].PM) - (cell.neighbors[0].AA * cell.PM)) if cell.neighbors[0] is not None and cell.neighbors[0].AA else 0,
+                                (((1 + N) * cell.neighbors[2].PM) - (cell.neighbors[2].AA * cell.PM)) if cell.neighbors[2] is not None and cell.neighbors[2].AA else 0,
+                                (((1 + E) * cell.neighbors[4].PM) - (cell.neighbors[4].AA * cell.PM)) if cell.neighbors[4] is not None and cell.neighbors[4].AA else 0,
+                                (((1 + S) * cell.neighbors[6].PM) - (cell.neighbors[6].AA * cell.PM)) if cell.neighbors[6] is not None and cell.neighbors[6].AA else 0])
+                     
+                    pmMN = sum([(((1 + NW) * cell.neighbors[1].PM) - (cell.neighbors[1].AA * cell.PM)) if cell.neighbors[1] is not None and cell.neighbors[1].AA else 0,
+                                (((1 + NE) * cell.neighbors[3].PM) - (cell.neighbors[3].AA * cell.PM)) if cell.neighbors[3] is not None and cell.neighbors[3].AA else 0,
+                                (((1 + SE) * cell.neighbors[5].PM) - (cell.neighbors[5].AA * cell.PM)) if cell.neighbors[5] is not None and cell.neighbors[5].AA else 0,
+                                (((1 + SW) * cell.neighbors[7].PM) - (cell.neighbors[7].AA * cell.PM)) if cell.neighbors[7] is not None and cell.neighbors[7].AA else 0])
                     
                     cell.PM = cell.PM + (self.PMP1 * (pmVN + self.PMP2 * pmMN))
 
@@ -276,15 +276,15 @@ class Simulation():
                         cell.PM = 0
 
                 if(cell.type != "U" and cell.type != "NS"):
-                    chaVN = sum([((cell.neighbors[0].CHA) - (cell.neighbors[0].AA * cell.CHA)) if cell.neighbors[0] is not None else 0,
-                                ((cell.neighbors[2].CHA) - (cell.neighbors[2].AA * cell.CHA)) if cell.neighbors[2] is not None else 0,
-                                ((cell.neighbors[4].CHA) - (cell.neighbors[4].AA * cell.CHA)) if cell.neighbors[4] is not None else 0,
-                                ((cell.neighbors[6].CHA) - (cell.neighbors[6].AA * cell.CHA)) if cell.neighbors[6] is not None else 0])
+                    chaVN = sum([((cell.neighbors[0].CHA) - (cell.neighbors[0].AA * cell.CHA)) if cell.neighbors[0] is not None and cell.neighbors[0].AA else 0,
+                                ((cell.neighbors[2].CHA) - (cell.neighbors[2].AA * cell.CHA)) if cell.neighbors[2] is not None and cell.neighbors[2].AA else 0,
+                                ((cell.neighbors[4].CHA) - (cell.neighbors[4].AA * cell.CHA)) if cell.neighbors[4] is not None and cell.neighbors[4].AA else 0,
+                                ((cell.neighbors[6].CHA) - (cell.neighbors[6].AA * cell.CHA)) if cell.neighbors[6] is not None and cell.neighbors[6].AA else 0])
                     
-                    chaMN = sum([((cell.neighbors[1].CHA) - (cell.neighbors[1].AA * cell.CHA)) if cell.neighbors[1] is not None else 0,
-                                ((cell.neighbors[3].CHA) - (cell.neighbors[3].AA * cell.CHA)) if cell.neighbors[3] is not None else 0,
-                                ((cell.neighbors[5].CHA) - (cell.neighbors[5].AA * cell.CHA)) if cell.neighbors[5] is not None else 0,
-                                ((cell.neighbors[7].CHA) - (cell.neighbors[7].AA * cell.CHA)) if cell.neighbors[7] is not None else 0])
+                    chaMN = sum([((cell.neighbors[1].CHA) - (cell.neighbors[1].AA * cell.CHA)) if cell.neighbors[1] is not None and cell.neighbors[1].AA else 0,
+                                ((cell.neighbors[3].CHA) - (cell.neighbors[3].AA * cell.CHA)) if cell.neighbors[3] is not None and cell.neighbors[3].AA else 0,
+                                ((cell.neighbors[5].CHA) - (cell.neighbors[5].AA * cell.CHA)) if cell.neighbors[5] is not None and cell.neighbors[5].AA else 0,
+                                ((cell.neighbors[7].CHA) - (cell.neighbors[7].AA * cell.CHA)) if cell.neighbors[7] is not None and cell.neighbors[7].AA else 0])
 
                     cell.CHA = self.CON * cell.CHA + (self.CAP1 * (chaVN + self.CAP2 * chaMN))
 
@@ -294,8 +294,8 @@ class Simulation():
                         cell.CHA = 0
                 
                 if cell.PM != 0 and cell.TE != True and cell.type != "SP" and cell.type != "NS" and cell.type != "U":
-                    self._block[cell.index[0]][cell.index[1]].updateColor(YELLOW, cell.PM)
-    
+                    self._block[cell.index[0]][cell.index[1]].updateColor(YELLOW, cell.PM + 0.95)
+
     def setTE(self):
         for cellNS in self._NS:
             if cellNS.PM >= self.thresholdPM :
@@ -305,15 +305,15 @@ class Simulation():
                 while (cell.type != "SP" and count <= 500):
                     cell.TE = True
                     self._block[cell.index[0]][cell.index[1]].updateColor(BLACK)
-
-                    cell = max((x for x in cell.neighbors if x != None), key = attrgetter("PM"))
+                    cell = max((x for x in cell.neighbors if x is not None and x.TE != True and x.type != "NS"), key = attrgetter("PM"))
                     count = count + 1
                 
-                self._NS.remove(cellNS)
-                cellNS.CHA = 0
-                cellNS.PM = self.defaultPM
-                cellNS.type = "SP"
-                self._SP.append(cellNS)
+                if cell.type == "SP":
+                    self._NS.remove(cellNS)
+                    cellNS.CHA = 0
+                    cellNS.PM = 0
+                    cellNS.type = "A"
+                    # self._SP.append(cellNS)
 
                 if not self._NS:
                     self._done = True
@@ -369,7 +369,7 @@ class Simulation():
                 self._all.draw(self.screen)
                 
                 # clock cap 60 ticks per seconds
-                self._clock.tick(60)
+                self._clock.tick(120)
                 
                 # update
                 pygame.display.flip()
@@ -394,25 +394,11 @@ class Simulation():
                                         pause = False
                 
                 print(self._step)
-                if (self._step % 50 != 0):
-                    self.diffusionEquation()
-                elif (self._step == 50000):
-                    cellSP = self._SP[len(self._SP) - 2]
-                    self._SP.remove(cellSP)
-
-                    for cell in self._SP:
-                        cell.type = "NS"
-                        cell.PM = 0
-                        cell.CHA = self.defaultCHA
-                        self._NS.append(cell)
-
-                    self._SP = [cellSP]
-                else:
+                
+                self.diffusionEquation()
+                
+                if(self._step % 100 == 0):
                     self.setTE()
-                        
-                if (self._step >= 50000):
-                    if (self._step >= 100000): 
-                        raise NameError('Too many iterations, giving up')
 
                 # update time step
                 self._step = self._step + 1
