@@ -343,7 +343,171 @@ class Simulation():
             for cell in x:
                 if (cell.CHA < 1.1e-12):
                     cell.CHA = 0
-                
+    
+    def cleanTE(self, cellNS, cellSP):
+        count = 0
+        lastCell = cellNS
+        rowSP = cellSP.index[0]
+        colSP = cellSP.index[1]
+        cell = cellNS
+        indexTE = []
+        while(cell.type != "SP" and count < 500):
+            lstTE = [c for c in cell.neighbors if (c.TE == True)]
+            indexTENeighbors = [(c.index[0], c.index[1]) for c in cell.neighbors
+                         if ((c.TE == True or c.type =="SP") and c != lastCell)]
+            
+            if (len(indexTENeighbors) ==  1):
+                x = indexTENeighbors[0][0]
+                y = indexTENeighbors[0][1]
+                cell = self._grid[x][y]
+                lastCell = cell
+            elif (len(indexTENeighbors) >  1):
+                i = cell.index[0]
+                j = cell.index[1]
+                lastCell = cell
+                # Se il tubo è più in alto del SP
+                if (i < rowSP):
+                    #Se il tubo è a sinistra del SP
+                    if(j < colSP):
+                        #Se posso andare in diagonale in basso verso destra 
+                        if ((i + 1, j + 1) in indexTENeighbors):
+                            cell = self._grid[i + 1][j + 1]
+                        #altrimenti vado in basso
+                        elif ((i + 1, j) in indexTENeighbors):
+                            cell = self._grid[i + 1][j]
+                        #altrimenti vado a destra
+                        elif ((i, j + 1) in indexTENeighbors):
+                            cell = self._grid[i][j + 1]
+                        #altrimenti prendo uno a caso
+                        else:
+                            (x, y) = indexTENeighbors[0]
+                            cell = self._grid[x][y]
+                    #se il tubo è a destra
+                    elif(j > colSP):
+                        #Se posso andare in diagonale in basso verso sinistra 
+                        if ((i + 1, j - 1) in indexTENeighbors):
+                            cell = self._grid[i + 1][j - 1]
+                        #altrimenti vado in basso
+                        elif ((i + 1, j) in indexTENeighbors):
+                            cell = self._grid[i + 1][j]
+                        #altrimenti vado a sinistra
+                        elif ((i, j - 1) in indexTENeighbors):
+                            cell = self._grid[i][j - 1]
+                        #altrimenti prendo uno a caso
+                        else:
+                            (x, y) = indexTENeighbors[0]
+                            cell = self._grid[x][y]
+                    else:
+                        # vado in basso
+                        if ((i + 1, j ) in indexTENeighbors):
+                            cell = self._grid[i + 1][j]
+                        #altrimenti vado in basso a destra
+                        elif ((i + 1, j + 1) in indexTENeighbors):
+                            cell = self._grid[i + 1][j + 1]
+                        #altrimenti vado in basso a sinistra
+                        elif ((i + 1, j - 1) in indexTENeighbors):
+                            cell = self._grid[i + 1][j - 1]
+                        #altrimenti prendo uno a caso
+                        else:
+                            (x, y) = indexTENeighbors[0]
+                            cell = self._grid[x][y]
+                #Il tubo è in basso
+                elif(i > rowSP):
+                    #Se il tubo è a sinistra del SP
+                    if(j < colSP):
+                        #Se posso andare in diagonale in alto verso destra 
+                        if ((i - 1, j + 1) in indexTENeighbors):
+                            cell = self._grid[i - 1][j + 1]
+                        #altrimenti vado in alto
+                        elif ((i - 1, j) in indexTENeighbors):
+                            cell = self._grid[i - 1][j]
+                        #altrimenti vado a destra
+                        elif ((i, j + 1) in indexTENeighbors):
+                            cell = self._grid[i][j + 1]
+                        #altrimenti prendo uno a caso
+                        else:
+                            (x, y) = indexTENeighbors[0]
+                            cell = self._grid[x][y]
+                    #se il tubo è a destra
+                    elif(j > colSP):
+                        #Se posso andare in diagonale in alto verso sinistra 
+                        if ((i - 1, j - 1) in indexTENeighbors):
+                            cell = self._grid[i - 1][j - 1]
+                        #altrimenti vado in alto
+                        elif ((i - 1, j) in indexTENeighbors):
+                            cell = self._grid[i - 1][j]
+                        #altrimenti vado a sinistra
+                        elif ((i, j - 1) in indexTENeighbors):
+                            cell = self._grid[i][j - 1]
+                        #altrimenti prendo uno a caso
+                        else:
+                            (x, y) = indexTENeighbors[0]
+                            cell = self._grid[x][y]
+                    else:
+                        # vado in alto
+                        if ((i - 1, j ) in indexTENeighbors):
+                            cell = self._grid[i - 1][j]
+                        #altrimenti vado in alto a destra
+                        elif ((i - 1, j + 1) in indexTENeighbors):
+                            cell = self._grid[i - 1][j + 1]
+                        #altrimenti vado in basso a sinistra
+                        elif ((i - 1, j - 1) in indexTENeighbors):
+                            cell = self._grid[i - 1][j - 1]
+                        #altrimenti prendo uno a caso
+                        else:
+                            (x, y) = indexTENeighbors[0]
+                            cell = self._grid[x][y]
+                else:
+                    #Se il tubo è a sinistra
+                    if(j < colSP):
+                        #Se posso andare in orizzontale verso destra 
+                        if ((i, j + 1) in indexTENeighbors):
+                            cell = self._grid[i][j + 1]
+                        #altrimenti vado in alto verso destra
+                        elif ((i - 1, j + 1) in indexTENeighbors):
+                            cell = self._grid[i - 1][j + 1]
+                        #altrimenti vado in basso a destra
+                        elif ((i + 1, j + 1) in indexTENeighbors):
+                            cell = self._grid[i + 1][j + 1]
+                        #altrimenti prendo uno a caso
+                        else:
+                            (x, y) = indexTENeighbors[0]
+                            cell = self._grid[x][y]
+                    #se il tubo è a destra
+                    elif(j > colSP):
+                        #Se posso andare in orizzontale verso sinistra 
+                        if ((i, j - 1) in indexTENeighbors):
+                            cell = self._grid[i][j - 1]
+                        #altrimenti vado in alto verso sinistra
+                        elif ((i - 1, j - 1) in indexTENeighbors):
+                            cell = self._grid[i - 1][j - 1]
+                        #altrimenti vado in basso verso sinistra
+                        elif ((i + 1, j - 1) in indexTENeighbors):
+                            cell = self._grid[i + 1][j - 1]
+                        #altrimenti prendo uno a caso
+                        else:
+                            (x, y) = indexTENeighbors[0]
+                            cell = self._grid[x][y]
+            else:
+                self._block[cell.index[0]][cell.index[1]].updateColor(YELLOW, cell.PM)
+                cell.TE = False
+                cell = lastCell
+                #raise NameError('I don\'t find the correct path for the tube, sorry!')
+            
+            self._block[cell.index[0]][cell.index[1]].updateColor(BLACK)
+            if((cell.index[0],cell.index[1]) in indexTE):
+                self._block[cell.index[0]][cell.index[1]].updateColor(YELLOW, cell.PM)
+                cell.TE = False
+            else:
+                indexTE.append((cell.index[0],cell.index[1]))
+
+
+
+
+                                
+
+
+
     
     def setTE(self):
         for cellNS in self._NS:
@@ -355,11 +519,14 @@ class Simulation():
                 while (cell.type != "SP" and count <= 500):
                     cell.TE = True
                     cellTE.append(cell)
-                    self._block[cell.index[0]][cell.index[1]].updateColor(BLACK)
+                    #self._block[cell.index[0]][cell.index[1]].updateColor(BLACK)
 
                     cell = max((x for x in cell.neighbors if (x != None and x not in cellTE)), key = attrgetter("PM"))
                     count = count + 1
                 
+                if(count < 500):
+                    self.cleanTE(cellNS, cell)
+
                 self._NS.remove(cellNS)
                 cellNS.CHA = 0
                 cellNS.PM = self.defaultPM
