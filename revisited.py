@@ -253,26 +253,20 @@ class Simulation():
                         NE = self.PAP
                         SW = -self.PAP
 
-                    pmVN = sum([(((1 + W) * cell.neighbors[0].PM) - (cell.neighbors[0].AA * cell.PM)) if cell.neighbors[0] is not None else 0,
-                                (((1 + N) * cell.neighbors[2].PM) - (cell.neighbors[2].AA * cell.PM)) if cell.neighbors[2] is not None else 0,
-                                (((1 + E) * cell.neighbors[4].PM) - (cell.neighbors[4].AA * cell.PM)) if cell.neighbors[4] is not None else 0,
-                                (((1 + S) * cell.neighbors[6].PM) - (cell.neighbors[6].AA * cell.PM)) if cell.neighbors[6] is not None else 0])
-                    
-                    pmMN = sum([(((1 + NW) * cell.neighbors[1].PM) - (cell.neighbors[1].AA * cell.PM)) if cell.neighbors[1] is not None else 0,
-                                (((1 + NE) * cell.neighbors[3].PM) - (cell.neighbors[3].AA * cell.PM)) if cell.neighbors[3] is not None else 0,
-                                (((1 + SE) * cell.neighbors[5].PM) - (cell.neighbors[5].AA * cell.PM)) if cell.neighbors[5] is not None else 0,
-                                (((1 + SW) * cell.neighbors[7].PM) - (cell.neighbors[7].AA * cell.PM)) if cell.neighbors[7] is not None else 0])
+                    pmVN = sum([(((1 + W) * cell.neighbors[0].PM) - cell.PM) if cell.neighbors[0] is not None and cell.neighbors[0].AA else 0,
+                                (((1 + N) * cell.neighbors[2].PM) - cell.PM) if cell.neighbors[2] is not None and cell.neighbors[2].AA else 0,
+                                (((1 + E) * cell.neighbors[4].PM) - cell.PM) if cell.neighbors[4] is not None and cell.neighbors[4].AA else 0,
+                                (((1 + S) * cell.neighbors[6].PM) - cell.PM) if cell.neighbors[6] is not None and cell.neighbors[6].AA else 0])
+                     
+                    pmMN = sum([(((1 + NW) * cell.neighbors[1].PM) - cell.PM) if cell.neighbors[1] is not None and cell.neighbors[1].AA else 0,
+                                (((1 + NE) * cell.neighbors[3].PM) - cell.PM) if cell.neighbors[3] is not None and cell.neighbors[3].AA else 0,
+                                (((1 + SE) * cell.neighbors[5].PM) - cell.PM) if cell.neighbors[5] is not None and cell.neighbors[5].AA else 0,
+                                (((1 + SW) * cell.neighbors[7].PM) - cell.PM) if cell.neighbors[7] is not None and cell.neighbors[7].AA else 0])
                     #prop = cell.CHA/self._totCHA 
 
-                    cell.PM = cell.PM + (self.PMP1 * (pmVN + self.PMP2 * pmMN))
-                    minCHAcell = None
-                    min = 200
-                    for c in cell.neighbors :
-                        if c != None :
-                            if ((c.PM * c.CHA) < min):
-                                minCHAcell = c
-                                min = c.PM * c.CHA
-
+                    cell.PM = cell.PM + ((self.PMP1 * pmVN) + (self.PMP2 * pmMN))
+                    
+                    minCHAcell = min((x for x in cell.neighbors if (x != None and x.TE != True)), key = attrgetter("CHA"))
 
                     """ L'idea iniziale era quella di togliere PM alla cella vicina con il CHA minimo per darlo alla cella
                     corrente. Dato che non funziona ho provato a cercare il minimo della moltiplicazione tra PM e CHA di ogni
@@ -280,11 +274,8 @@ class Simulation():
                     Risultato interessante perchè il PM, nel idea iniziale con un beta superiore a 0.05 , si vede che va proprio
                     nella direzione del NS.  
                      """
-                    if ( minCHAcell.CHA != 0
-                        and minCHAcell.CHA < cell.CHA
-                        and minCHAcell.PM != self.defaultPM
-                        and minCHAcell.PM != 0):
-                        beta = 0.02
+                    if (minCHAcell.CHA != 0 and minCHAcell.CHA < cell.CHA and minCHAcell.PM != self.defaultPM and minCHAcell.PM != 0 and minCHAcell is not None):
+                        beta = 0.01
                         givePM = minCHAcell.PM * beta
                         minCHAcell.PM = minCHAcell.PM - givePM
                         cell.PM = cell.PM + givePM
@@ -295,17 +286,17 @@ class Simulation():
                         cell.PM = 0
 
                 if(cell.type != "U" and cell.type != "NS"):
-                    chaVN = sum([(cell.neighbors[0].CHA - (cell.neighbors[0].AA * cell.CHA)) if cell.neighbors[0] is not None else 0,
-                                (cell.neighbors[2].CHA - (cell.neighbors[2].AA * cell.CHA)) if cell.neighbors[2] is not None else 0,
-                                (cell.neighbors[4].CHA - (cell.neighbors[4].AA * cell.CHA)) if cell.neighbors[4] is not None else 0,
-                                (cell.neighbors[6].CHA - (cell.neighbors[6].AA * cell.CHA)) if cell.neighbors[6] is not None else 0])
+                    chaVN = sum([(cell.neighbors[0].CHA - cell.CHA) if cell.neighbors[0] is not None and cell.neighbors[0].AA else 0,
+                                (cell.neighbors[2].CHA - cell.CHA) if cell.neighbors[2] is not None and cell.neighbors[2].AA else 0,
+                                (cell.neighbors[4].CHA - cell.CHA) if cell.neighbors[4] is not None and cell.neighbors[4].AA else 0,
+                                (cell.neighbors[6].CHA - cell.CHA) if cell.neighbors[6] is not None and cell.neighbors[6].AA else 0])
                     
-                    chaMN = sum([(cell.neighbors[1].CHA - (cell.neighbors[1].AA * cell.CHA)) if cell.neighbors[1] is not None else 0,
-                                (cell.neighbors[3].CHA - (cell.neighbors[3].AA * cell.CHA)) if cell.neighbors[3] is not None else 0,
-                                (cell.neighbors[5].CHA - (cell.neighbors[5].AA * cell.CHA)) if cell.neighbors[5] is not None else 0,
-                                (cell.neighbors[7].CHA - (cell.neighbors[7].AA * cell.CHA)) if cell.neighbors[7] is not None else 0])
+                    chaMN = sum([(cell.neighbors[1].CHA - cell.CHA) if cell.neighbors[1] is not None and cell.neighbors[1].AA else 0,
+                                (cell.neighbors[3].CHA - cell.CHA) if cell.neighbors[3] is not None and cell.neighbors[3].AA else 0,
+                                (cell.neighbors[5].CHA - cell.CHA) if cell.neighbors[5] is not None and cell.neighbors[5].AA else 0,
+                                (cell.neighbors[7].CHA - cell.CHA) if cell.neighbors[7] is not None and cell.neighbors[7].AA else 0])
 
-                    cell.CHA = self.CON * cell.CHA + (self.CAP1 * (chaVN + self.CAP2 * chaMN))
+                    cell.CHA = (self.CON * cell.CHA) + ((self.CAP1 * chaVN) + (self.CAP2 * chaMN))
 
                     if cell.CHA > self.defaultCHA:
                         cell.CHA = self.defaultCHA
@@ -320,17 +311,17 @@ class Simulation():
         for x in self._grid:
             for cell in x:
                 if(cell.type != "U" and cell.type != "NS"):
-                    chaVN = sum([(cell.neighbors[0].CHA - (cell.neighbors[0].AA * cell.CHA)) if cell.neighbors[0] is not None else 0,
-                                (cell.neighbors[2].CHA - (cell.neighbors[2].AA * cell.CHA)) if cell.neighbors[2] is not None else 0,
-                                (cell.neighbors[4].CHA - (cell.neighbors[4].AA * cell.CHA)) if cell.neighbors[4] is not None else 0,
-                                (cell.neighbors[6].CHA - (cell.neighbors[6].AA * cell.CHA)) if cell.neighbors[6] is not None else 0])
+                    chaVN = sum([(cell.neighbors[0].CHA - cell.CHA) if cell.neighbors[0] is not None and cell.neighbors[0].AA else 0,
+                                (cell.neighbors[2].CHA - cell.CHA) if cell.neighbors[2] is not None and cell.neighbors[2].AA else 0,
+                                (cell.neighbors[4].CHA - cell.CHA) if cell.neighbors[4] is not None and cell.neighbors[4].AA else 0,
+                                (cell.neighbors[6].CHA - cell.CHA) if cell.neighbors[6] is not None and cell.neighbors[6].AA else 0])
                     
-                    chaMN = sum([(cell.neighbors[1].CHA - (cell.neighbors[1].AA * cell.CHA)) if cell.neighbors[1] is not None else 0,
-                                (cell.neighbors[3].CHA - (cell.neighbors[3].AA * cell.CHA)) if cell.neighbors[3] is not None else 0,
-                                (cell.neighbors[5].CHA - (cell.neighbors[5].AA * cell.CHA)) if cell.neighbors[5] is not None else 0,
-                                (cell.neighbors[7].CHA - (cell.neighbors[7].AA * cell.CHA)) if cell.neighbors[7] is not None else 0])
+                    chaMN = sum([(cell.neighbors[1].CHA - cell.CHA) if cell.neighbors[1] is not None and cell.neighbors[1].AA else 0,
+                                (cell.neighbors[3].CHA - cell.CHA) if cell.neighbors[3] is not None and cell.neighbors[3].AA else 0,
+                                (cell.neighbors[5].CHA - cell.CHA) if cell.neighbors[5] is not None and cell.neighbors[5].AA else 0,
+                                (cell.neighbors[7].CHA - cell.CHA) if cell.neighbors[7] is not None and cell.neighbors[7].AA else 0])
 
-                    cell.CHA = self.CON * (cell.CHA + self.CAP1 * (chaVN + self.CAP2 * chaMN))
+                    cell.CHA = (self.CON * cell.CHA) + ((self.CAP1 * chaVN) + (self.CAP2 * chaMN))
                     totCHA = totCHA + cell.CHA
 
                     if cell.CHA > self.defaultCHA:
@@ -342,8 +333,7 @@ class Simulation():
         for x in self._grid:
             for cell in x:
                 if (cell.CHA < 1.1e-12):
-                    cell.CHA = 0
-                
+                    cell.CHA = 0    
     
     def setTE(self):
         for cellNS in self._NS:
@@ -391,13 +381,13 @@ class Simulation():
                     elif event.type == pygame.MOUSEMOTION:
                         self.m_position = (pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
                     elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                        j = int(np.round(np.interp(self.m_position[0], [0, self._size[0]], [0, self._rows - 1])))
-                        i = int(np.round(np.interp(self.m_position[1], [0, self._size[1]], [0, self._cols - 1])))
+                        j = int(np.round(np.interp(self.m_position[0], [0, self._size[0]], [0, self._rows])))
+                        i = int(np.round(np.interp(self.m_position[1], [0, self._size[1]], [0, self._cols])))
                         self._block[i][j].updateColor(self._user._color)
                         self._grid[i][j].updateMatrix(self._user._color)
                     elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
-                        j = int(np.round(np.interp(self.m_position[0], [0, self._size[0]], [0, self._rows - 1])))
-                        i = int(np.round(np.interp(self.m_position[1], [0, self._size[1]], [0, self._cols - 1])))
+                        j = int(np.round(np.interp(self.m_position[0], [0, self._size[0]], [0, self._rows])))
+                        i = int(np.round(np.interp(self.m_position[1], [0, self._size[1]], [0, self._cols])))
                         self._block[i][j].updateColor(WHITE)
                         self._grid[i][j].updateMatrix(WHITE)
                     elif event.type == pygame.KEYDOWN: # press enter to start simulation with the configuration 
@@ -449,6 +439,7 @@ class Simulation():
                 # i primi 100 passi facciamo diffondere il CHA
                 if(self._step < 100):
                     self.diffusionCHA()
+
                     if (self._step == 99):
                         self.cleanCHA()
                         tmp = []
@@ -457,7 +448,8 @@ class Simulation():
                             for j in range(self._cols):
                                 tmp[i].append(self._grid[i][j].CHA) 
                         print(self._step)
-                elif (self._step % 50 != 0):
+
+                elif (self._step > 100):
                     self.diffusionEquation()
                 elif (self._step == 5000):
                     cellSP = self._SP[len(self._SP) - 2]
@@ -470,7 +462,8 @@ class Simulation():
                         self._NS.append(cell)
 
                     self._SP = [cellSP]
-                else:
+                
+                if(self._step % 50 == 0):
                     self.setTE()
                         
                 if (self._step >= 5000):

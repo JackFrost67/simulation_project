@@ -89,8 +89,8 @@ class Block(pygame.sprite.Sprite):
 class Simulation():
     ## parameter for the pphysarum simulation
     # parameters for diffusion equation for the cytoplasm
-    PMP1 = 0.08
-    PMP2 = 0.01
+    PMP1 = 0.09
+    PMP2 = 0.00
 
     # parameters for the diffusion of the chemoattractant
     CAP1 = 0.05
@@ -258,17 +258,17 @@ class Simulation():
                         NE = self.PAP
                         SW = -self.PAP
 
-                    pmVN = sum([(((1 + W) * cell.neighbors[0].PM) - (cell.neighbors[0].AA * cell.PM)) if cell.neighbors[0] is not None and cell.neighbors[0].AA else 0,
-                                (((1 + N) * cell.neighbors[2].PM) - (cell.neighbors[2].AA * cell.PM)) if cell.neighbors[2] is not None and cell.neighbors[2].AA else 0,
-                                (((1 + E) * cell.neighbors[4].PM) - (cell.neighbors[4].AA * cell.PM)) if cell.neighbors[4] is not None and cell.neighbors[4].AA else 0,
-                                (((1 + S) * cell.neighbors[6].PM) - (cell.neighbors[6].AA * cell.PM)) if cell.neighbors[6] is not None and cell.neighbors[6].AA else 0])
+                    pmVN = sum([(((1 + W) * cell.neighbors[0].PM) - cell.PM) if cell.neighbors[0] is not None and cell.neighbors[0].AA else 0,
+                                (((1 + N) * cell.neighbors[2].PM) - cell.PM) if cell.neighbors[2] is not None and cell.neighbors[2].AA else 0,
+                                (((1 + E) * cell.neighbors[4].PM) - cell.PM) if cell.neighbors[4] is not None and cell.neighbors[4].AA else 0,
+                                (((1 + S) * cell.neighbors[6].PM) - cell.PM) if cell.neighbors[6] is not None and cell.neighbors[6].AA else 0])
                      
-                    pmMN = sum([(((1 + NW) * cell.neighbors[1].PM) - (cell.neighbors[1].AA * cell.PM)) if cell.neighbors[1] is not None and cell.neighbors[1].AA else 0,
-                                (((1 + NE) * cell.neighbors[3].PM) - (cell.neighbors[3].AA * cell.PM)) if cell.neighbors[3] is not None and cell.neighbors[3].AA else 0,
-                                (((1 + SE) * cell.neighbors[5].PM) - (cell.neighbors[5].AA * cell.PM)) if cell.neighbors[5] is not None and cell.neighbors[5].AA else 0,
-                                (((1 + SW) * cell.neighbors[7].PM) - (cell.neighbors[7].AA * cell.PM)) if cell.neighbors[7] is not None and cell.neighbors[7].AA else 0])
+                    pmMN = sum([(((1 + NW) * cell.neighbors[1].PM) - cell.PM) if cell.neighbors[1] is not None and cell.neighbors[1].AA else 0,
+                                (((1 + NE) * cell.neighbors[3].PM) - cell.PM) if cell.neighbors[3] is not None and cell.neighbors[3].AA else 0,
+                                (((1 + SE) * cell.neighbors[5].PM) - cell.PM) if cell.neighbors[5] is not None and cell.neighbors[5].AA else 0,
+                                (((1 + SW) * cell.neighbors[7].PM) - cell.PM) if cell.neighbors[7] is not None and cell.neighbors[7].AA else 0])
                     
-                    cell.PM = cell.PM + (self.PMP1 * (pmVN + self.PMP2 * pmMN))
+                    cell.PM = cell.PM + ((self.PMP1 * pmVN) + (self.PMP2 * pmMN))
 
                     if cell.PM > self.defaultPM:
                         cell.PM = self.defaultPM
@@ -276,17 +276,17 @@ class Simulation():
                         cell.PM = 0
 
                 if(cell.type != "U" and cell.type != "NS"):
-                    chaVN = sum([((cell.neighbors[0].CHA) - (cell.neighbors[0].AA * cell.CHA)) if cell.neighbors[0] is not None and cell.neighbors[0].AA else 0,
-                                ((cell.neighbors[2].CHA) - (cell.neighbors[2].AA * cell.CHA)) if cell.neighbors[2] is not None and cell.neighbors[2].AA else 0,
-                                ((cell.neighbors[4].CHA) - (cell.neighbors[4].AA * cell.CHA)) if cell.neighbors[4] is not None and cell.neighbors[4].AA else 0,
-                                ((cell.neighbors[6].CHA) - (cell.neighbors[6].AA * cell.CHA)) if cell.neighbors[6] is not None and cell.neighbors[6].AA else 0])
+                    chaVN = sum([((cell.neighbors[0].CHA) - cell.CHA) if cell.neighbors[0] is not None and cell.neighbors[0].AA else 0,
+                                ((cell.neighbors[2].CHA) - cell.CHA) if cell.neighbors[2] is not None and cell.neighbors[2].AA else 0,
+                                ((cell.neighbors[4].CHA) - cell.CHA) if cell.neighbors[4] is not None and cell.neighbors[4].AA else 0,
+                                ((cell.neighbors[6].CHA) - cell.CHA) if cell.neighbors[6] is not None and cell.neighbors[6].AA else 0])
                     
-                    chaMN = sum([((cell.neighbors[1].CHA) - (cell.neighbors[1].AA * cell.CHA)) if cell.neighbors[1] is not None and cell.neighbors[1].AA else 0,
-                                ((cell.neighbors[3].CHA) - (cell.neighbors[3].AA * cell.CHA)) if cell.neighbors[3] is not None and cell.neighbors[3].AA else 0,
-                                ((cell.neighbors[5].CHA) - (cell.neighbors[5].AA * cell.CHA)) if cell.neighbors[5] is not None and cell.neighbors[5].AA else 0,
-                                ((cell.neighbors[7].CHA) - (cell.neighbors[7].AA * cell.CHA)) if cell.neighbors[7] is not None and cell.neighbors[7].AA else 0])
+                    chaMN = sum([((cell.neighbors[1].CHA) - cell.CHA) if cell.neighbors[1] is not None and cell.neighbors[1].AA else 0,
+                                ((cell.neighbors[3].CHA) - cell.CHA) if cell.neighbors[3] is not None and cell.neighbors[3].AA else 0,
+                                ((cell.neighbors[5].CHA) - cell.CHA) if cell.neighbors[5] is not None and cell.neighbors[5].AA else 0,
+                                ((cell.neighbors[7].CHA) - cell.CHA) if cell.neighbors[7] is not None and cell.neighbors[7].AA else 0])
 
-                    cell.CHA = self.CON * cell.CHA + (self.CAP1 * (chaVN + self.CAP2 * chaMN))
+                    cell.CHA = self.CON * (cell.CHA + ((self.CAP1 * chaVN) + (self.CAP2 * chaMN)))
 
                     if cell.CHA > self.defaultCHA:
                         cell.CHA = self.defaultCHA
