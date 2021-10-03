@@ -189,33 +189,32 @@ class Simulation():
                     self._SP.append(cell)
 
     def buildObstacle(self):
-        return
-        # for cellNS in self._NS:
-        #     for neighbor in cellNS.neighbors:
-        #         if neighbor != None:
-        #             neighbor.type = "U"
-        #             self._block[neighbor.index[0]][neighbor.index[1]].updateColor(RED)
+        for cellNS in self._NS:
+            for neighbor in cellNS.neighbors:
+                if neighbor != None:
+                    neighbor.type = "U"
+                    self._block[neighbor.index[0]][neighbor.index[1]].updateColor(RED)
                         
-        #     if(cellNS.dir == "N" and cellNS.index[1] - 1 >= 0):
-        #         self._grid[cellNS.index[0] - 1][cellNS.index[1]].type = self._grid[cellNS.index[0] - 1][cellNS.index[1] - 1].type = self._grid[cellNS.index[0] - 1][cellNS.index[1] + 1].type = "A"
-        #         self._block[cellNS.index[0] - 1][cellNS.index[1]].updateColor(WHITE)
-        #         self._block[cellNS.index[0] - 1][cellNS.index[1] - 1].updateColor(WHITE)
-        #         self._block[cellNS.index[0] - 1][cellNS.index[1] + 1].updateColor(WHITE)
-        #     elif(cellNS.dir == "W" and cellNS.index[0] - 1 >= 0):
-        #         self._grid[cellNS.index[0]][cellNS.index[1] - 1].type = self._grid[cellNS.index[0] - 1][cellNS.index[1] - 1].type = self._grid[cellNS.index[0] + 1][cellNS.index[1] - 1].type = "A"
-        #         self._block[cellNS.index[0]][cellNS.index[1] - 1].updateColor(WHITE)
-        #         self._block[cellNS.index[0] - 1][cellNS.index[1] - 1].updateColor(WHITE)
-        #         self._block[cellNS.index[0] + 1][cellNS.index[1] - 1].updateColor(WHITE)
-        #     elif(cellNS.dir == "E" and cellNS.index[0] + 1 < self._rows):
-        #         self._grid[cellNS.index[0]][cellNS.index[1] + 1].type =  self._grid[cellNS.index[0] - 1][cellNS.index[1] + 1].type = self._grid[cellNS.index[0] + 1][cellNS.index[1] + 1].type = "A"
-        #         self._block[cellNS.index[0]][cellNS.index[1] + 1].updateColor(WHITE)
-        #         self._block[cellNS.index[0] - 1][cellNS.index[1] + 1].updateColor(WHITE)
-        #         self._block[cellNS.index[0] + 1][cellNS.index[1] + 1].updateColor(WHITE)
-        #     elif(cellNS.dir == "S" and cellNS.index[1] + 1 < self._cols):
-        #         self._grid[cellNS.index[0] + 1][cellNS.index[1]].type = self._grid[cellNS.index[0] + 1][cellNS.index[1] - 1].type = self._grid[cellNS.index[0] + 1][cellNS.index[1] + 1].type = "A"
-        #         self._block[cellNS.index[0] + 1][cellNS.index[1]].updateColor(WHITE)
-        #         self._block[cellNS.index[0] + 1][cellNS.index[1] - 1].updateColor(WHITE)
-        #         self._block[cellNS.index[0] + 1][cellNS.index[1] + 1].updateColor(WHITE)
+            if(cellNS.dir == "N" and cellNS.index[1] - 1 >= 0):
+                self._grid[cellNS.index[0] - 1][cellNS.index[1]].type = self._grid[cellNS.index[0] - 1][cellNS.index[1] - 1].type = self._grid[cellNS.index[0] - 1][cellNS.index[1] + 1].type = "A"
+                self._block[cellNS.index[0] - 1][cellNS.index[1]].updateColor(WHITE)
+                self._block[cellNS.index[0] - 1][cellNS.index[1] - 1].updateColor(WHITE)
+                self._block[cellNS.index[0] - 1][cellNS.index[1] + 1].updateColor(WHITE)
+            elif(cellNS.dir == "W" and cellNS.index[0] - 1 >= 0):
+                self._grid[cellNS.index[0]][cellNS.index[1] - 1].type = self._grid[cellNS.index[0] - 1][cellNS.index[1] - 1].type = self._grid[cellNS.index[0] + 1][cellNS.index[1] - 1].type = "A"
+                self._block[cellNS.index[0]][cellNS.index[1] - 1].updateColor(WHITE)
+                self._block[cellNS.index[0] - 1][cellNS.index[1] - 1].updateColor(WHITE)
+                self._block[cellNS.index[0] + 1][cellNS.index[1] - 1].updateColor(WHITE)
+            elif(cellNS.dir == "E" and cellNS.index[0] + 1 < self._rows):
+                self._grid[cellNS.index[0]][cellNS.index[1] + 1].type =  self._grid[cellNS.index[0] - 1][cellNS.index[1] + 1].type = self._grid[cellNS.index[0] + 1][cellNS.index[1] + 1].type = "A"
+                self._block[cellNS.index[0]][cellNS.index[1] + 1].updateColor(WHITE)
+                self._block[cellNS.index[0] - 1][cellNS.index[1] + 1].updateColor(WHITE)
+                self._block[cellNS.index[0] + 1][cellNS.index[1] + 1].updateColor(WHITE)
+            elif(cellNS.dir == "S" and cellNS.index[1] + 1 < self._cols):
+                self._grid[cellNS.index[0] + 1][cellNS.index[1]].type = self._grid[cellNS.index[0] + 1][cellNS.index[1] - 1].type = self._grid[cellNS.index[0] + 1][cellNS.index[1] + 1].type = "A"
+                self._block[cellNS.index[0] + 1][cellNS.index[1]].updateColor(WHITE)
+                self._block[cellNS.index[0] + 1][cellNS.index[1] - 1].updateColor(WHITE)
+                self._block[cellNS.index[0] + 1][cellNS.index[1] + 1].updateColor(WHITE)
 
     def diffusionEquation(self):
         for x in self._grid:
@@ -342,6 +341,7 @@ class Simulation():
         colSP = cellSP.index[1]
         cell = cellNS
         indexTE = []
+
         while(cell.type != "SP" and count < 500):
             lstTE = [c for c in cell.neighbors if (c is not None and c.TE == True)]
             indexTENeighbors = [(c.index[0], c.index[1]) for c in cell.neighbors if ((c is not None and ((c.TE == True or c.type =="SP")) and c != lastCell))]
@@ -484,7 +484,13 @@ class Simulation():
                 cell = lastCell
                 #raise NameError('I don\'t find the correct path for the tube, sorry!')
             
-            self._block[cell.index[0]][cell.index[1]].updateColor(BLACK)
+            if cell.type == "SP":
+                self._block[cell.index[0]][cell.index[1]].updateColor(BLUE)
+            elif cell.type == "NS":
+                self._block[cell.index[0]][cell.index[1]].updateColor(GREEN)
+            else:
+                self._block[cell.index[0]][cell.index[1]].updateColor(BLACK)
+            
             if((cell.index[0],cell.index[1]) in indexTE):
                 self._block[cell.index[0]][cell.index[1]].updateColor(YELLOW, cell.PM)
                 cell.TE = False
@@ -502,7 +508,7 @@ class Simulation():
                 while (cell.type != "SP" and count <= 500):
                     cell.TE = True
                     cellTE.append(cell)
-                    self._block[cell.index[0]][cell.index[1]].updateColor(BLACK)
+                    #self._block[cell.index[0]][cell.index[1]].updateColor(BLACK)
 
                     cell = max((x for x in cell.neighbors if (x != None and x not in cellTE)), key = attrgetter("PM"))
                     count = count + 1
@@ -555,7 +561,7 @@ class Simulation():
                             self.findNeighbors()
                             self.findNS()
                             self.findSP()
-                            self.buildObstacle()
+                            #self.buildObstacle()
                             self._running = True
                             self._user.image.set_alpha(0)
                         elif event.key == pygame.K_RIGHT:
@@ -595,7 +601,7 @@ class Simulation():
                                     if event.key == pygame.K_s:
                                         pause = False
                 
-                print(self._step)
+                print("step:", self._step)
                 # i primi 100 passi facciamo diffondere il CHA
                 if(self._step < 100):
                     self.diffusionCHA()
