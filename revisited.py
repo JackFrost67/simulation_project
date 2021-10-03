@@ -360,10 +360,15 @@ class Simulation():
                 # se l'opposto dell'ultima cella è presente continuiamo in questa direzione
                 (x, y) = (-1, -1)
                 indexOpposite = 0
-                if (lastCell in cell.neighbors and lastCell != None):
+                if (lastCell != None and lastCell in cell.neighbors):
                     p = cell.neighbors.index(lastCell) 
                     indexOpposite = (p + 4) % 8
+
+                if cell.neighbors[indexOpposite] is not None:
                     (x, y) = cell.neighbors[indexOpposite].index
+                else:
+                    (x, y) = (-1, -1)
+                
                 if ((x, y) in indexTENeighbors):
                     lastCell = cell
                     cell = self._grid[x][y]
@@ -555,7 +560,7 @@ class Simulation():
                     cellTE.append(cell)
                     #self._block[cell.index[0]][cell.index[1]].updateColor(BLACK)
 
-                    cell = max((x for x in cell.neighbors if (x != None and x not in cellTE)), key = attrgetter("PM"))
+                    cell = max((x for x in cell.neighbors if (x is not None and x.AA and x not in cellTE)), key = attrgetter("PM"))
                     count = count + 1
                 
                 if(count < 500):
