@@ -275,7 +275,7 @@ class Simulation():
                     nella direzione del NS.  
                      """
                     if (minCHAcell.CHA != 0 and minCHAcell.CHA < cell.CHA and minCHAcell.PM != self.defaultPM and minCHAcell.PM != 0 and minCHAcell is not None):
-                        beta = 0.01
+                        beta = 0.02
                         givePM = minCHAcell.PM * beta
                         minCHAcell.PM = minCHAcell.PM - givePM
                         cell.PM = cell.PM + givePM
@@ -343,9 +343,8 @@ class Simulation():
         cell = cellNS
         indexTE = []
         while(cell.type != "SP" and count < 500):
-            lstTE = [c for c in cell.neighbors if (c.TE == True)]
-            indexTENeighbors = [(c.index[0], c.index[1]) for c in cell.neighbors
-                         if ((c.TE == True or c.type =="SP") and c != lastCell)]
+            lstTE = [c for c in cell.neighbors if (c is not None and c.TE == True)]
+            indexTENeighbors = [(c.index[0], c.index[1]) for c in cell.neighbors if ((c is not None and ((c.TE == True or c.type =="SP")) and c != lastCell))]
             
             if (len(indexTENeighbors) ==  1):
                 x = indexTENeighbors[0][0]
@@ -491,26 +490,19 @@ class Simulation():
                 cell.TE = False
             else:
                 indexTE.append((cell.index[0],cell.index[1]))
-
-
-
-
-                                
-
-
-
     
     def setTE(self):
         for cellNS in self._NS:
             if cellNS.PM >= self.thresholdPM :
                 cell = cellNS
                 count = 0
+
                 #Aggiunto cellTE per cercare di evitare i loop
                 cellTE = []
                 while (cell.type != "SP" and count <= 500):
                     cell.TE = True
                     cellTE.append(cell)
-                    #self._block[cell.index[0]][cell.index[1]].updateColor(BLACK)
+                    self._block[cell.index[0]][cell.index[1]].updateColor(BLACK)
 
                     cell = max((x for x in cell.neighbors if (x != None and x not in cellTE)), key = attrgetter("PM"))
                     count = count + 1
