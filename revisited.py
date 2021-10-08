@@ -4,6 +4,7 @@ import random
 import sys
 import numpy as np
 from operator import attrgetter
+import time
 
 # color palette
 WHITE = (255, 255, 255)
@@ -93,7 +94,7 @@ class Simulation():
     PMP1 = 0.08
     PMP2 = 0.01
 
-    # parameters for the diffusion of the chemoattractant
+    # parameters for the difbetafusion of the chemoattractant
     CAP1 = 0.05
     CAP2 = 0.02
 
@@ -104,10 +105,10 @@ class Simulation():
     PAP = 0.2
 
     # threshold of Physarum Mass that encapsulate a NS
-    thresholdPM = 0.7
+    thresholdPM = 0.2
 
-    defaultCHA = 200
-    defaultPM = 200
+    defaultCHA = 100
+    defaultPM = 100
 
     def __init__(self):
         pygame.display.set_caption('Physarum Polycephalum Simulation') # setting name of the screen
@@ -176,17 +177,13 @@ class Simulation():
                 self._group.add(self._block[row][column])
                 self._all.add(self._block[row][column])
     
-    def findNS(self):
+    def find(self):
        for x in self._grid:
            for cell in x:
                 if cell.type == "NS":
                     self._NS.append(cell)
-    
-    def findSP(self):
-       for x in self._grid:
-           for cell in x:
                 if cell.type == "SP":
-                    self._SP.append(cell)
+                    self._SP.append(cell)               
 
     def buildObstacle(self):
         for cellNS in self._NS:
@@ -220,7 +217,7 @@ class Simulation():
         for x in self._grid:
             for cell in x:
                 if(cell.type != "U" and cell.type != "SP"):
-                    maxCHAcell = max((x for x in cell.neighbors if x != None), key = attrgetter("CHA"))
+                    maxCHAcell = max((x for x in cell.neighbors if x != None), key = attrgetter("PM", "CHA"))
 
                     i = cell.index[0]
                     j = cell.index[1]
@@ -228,8 +225,8 @@ class Simulation():
                     N = S = W = E = NW = NE = SW = SE = 0
 
                     if (maxCHAcell.index == (i - 1, j)):
-                        W = self.PAP
-                        E = -self.PAP
+                        N = self.PAP
+                        S = -self.PAP
                     elif (maxCHAcell.index == (i, j - 1)):
                         S = self.PAP
                         N = -self.PAP
@@ -261,20 +258,19 @@ class Simulation():
                                 (((1 + NE) * cell.neighbors[3].PM) - cell.PM) if cell.neighbors[3] is not None and cell.neighbors[3].AA else 0,
                                 (((1 + SE) * cell.neighbors[5].PM) - cell.PM) if cell.neighbors[5] is not None and cell.neighbors[5].AA else 0,
                                 (((1 + SW) * cell.neighbors[7].PM) - cell.PM) if cell.neighbors[7] is not None and cell.neighbors[7].AA else 0])
-                    #prop = cell.CHA/self._totCHA 
 
-                    cell.PM = cell.PM + ((self.PMP1 * pmVN) + (self.PMP2 * pmMN))
+                    cell.PM = cell.PM + (self.PMP1 * (pmVN + (self.PMP2 * pmMN)))
                     
-                    minCHAcell = min((x for x in cell.neighbors if (x != None and x.TE != True)), key = attrgetter("CHA"))
+                    minCHAcell = min((x for x in cell.neighbors if (x != None)), key = attrgetter("CHA"))
 
-                    """ L'idea iniziale era quella di togliere PM alla cella vicina con il CHA minimo per darlo alla cella
-                    corrente. Dato che non funziona ho provato a cercare il minimo della moltiplicazione tra PM e CHA di ogni
-                    vicino. Anche questo non funziona.
-                    Risultato interessante perchè il PM, nel idea iniziale con un beta superiore a 0.05 , si vede che va proprio
-                    nella direzione del NS.  
-                     """
+                    # L'idea iniziale era quella di togliere PM alla cella vicina con il CHA minimo per darlo alla cella
+                    # corrente. Dato che non funziona ho provato a cercare il minimo della moltiplicazione tra PM e CHA di ogni
+                    # vicino. Anche questo non funziona.
+                    # Risultato interessante perchè il PM, nel idea iniziale con un beta superiore a 0.05 , si vede che va proprio
+                    # nella direzione del NS.  
+                    
                     if (minCHAcell.CHA != 0 and minCHAcell.CHA < cell.CHA and minCHAcell.PM != self.defaultPM and minCHAcell.PM != 0 and minCHAcell is not None):
-                        beta = 0.02
+                        beta = 0.05
                         givePM = minCHAcell.PM * beta
                         minCHAcell.PM = minCHAcell.PM - givePM
                         cell.PM = cell.PM + givePM
@@ -295,7 +291,7 @@ class Simulation():
                                 (cell.neighbors[5].CHA - cell.CHA) if cell.neighbors[5] is not None and cell.neighbors[5].AA else 0,
                                 (cell.neighbors[7].CHA - cell.CHA) if cell.neighbors[7] is not None and cell.neighbors[7].AA else 0])
 
-                    cell.CHA = (self.CON * cell.CHA) + ((self.CAP1 * chaVN) + (self.CAP2 * chaMN))
+                    cell.CHA = (self.CON * cell.CHA) + (self.CAP1 * (chaVN + (self.CAP2 * chaMN)))
 
                     if cell.CHA > self.defaultCHA:
                         cell.CHA = self.defaultCHA
@@ -552,17 +548,22 @@ class Simulation():
             if cellNS.PM >= self.thresholdPM :
                 cell = cellNS
                 count = 0
+                n = 0
 
                 #Aggiunto cellTE per cercare di evitare i loop
                 cellTE = []
+
                 while (cell.type != "SP" and count <= 500):
                     cell.TE = True
                     cellTE.append(cell)
-                    #self._block[cell.index[0]][cell.index[1]].updateColor(BLACK)
 
-                    cell = max((x for x in cell.neighbors if (x is not None and x.AA and x not in cellTE)), key = attrgetter("PM"))
-                    count = count + 1
-                
+                    try:
+                        cell = max((x for x in cell.neighbors if (x is not None and x.AA and x not in cellTE)), key = attrgetter("PM"))
+                        count = count + 1
+                    except:
+                        #cellTE.remove(cell)
+                        cell = cellTE[0]
+
                 if(count < 500):
                     self.cleanTE(cellNS, cell)
 
@@ -582,6 +583,7 @@ class Simulation():
 
         self._user_group.update()
         self._all.draw(self.screen)
+        start = 0
 
         # main loop
         while True:
@@ -596,21 +598,25 @@ class Simulation():
                         sys.exit()
                     elif event.type == pygame.MOUSEMOTION:
                         self.m_position = (pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
-                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    
+                    if pygame.mouse.get_pressed()[0]:
                         j = int(np.round(np.interp(self.m_position[0], [0, self._size[0]], [0, self._rows])))
                         i = int(np.round(np.interp(self.m_position[1], [0, self._size[1]], [0, self._cols])))
-                        self._block[i][j].updateColor(self._user._color)
-                        self._grid[i][j].updateMatrix(self._user._color)
-                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+                        try:
+                            self._block[i][j].updateColor(self._user._color)
+                            self._grid[i][j].updateMatrix(self._user._color)
+                        except:
+                            pass
+                    elif pygame.mouse.get_pressed()[2]:
                         j = int(np.round(np.interp(self.m_position[0], [0, self._size[0]], [0, self._rows])))
                         i = int(np.round(np.interp(self.m_position[1], [0, self._size[1]], [0, self._cols])))
                         self._block[i][j].updateColor(WHITE)
                         self._grid[i][j].updateMatrix(WHITE)
                     elif event.type == pygame.KEYDOWN: # press enter to start simulation with the configuration 
                         if event.key == pygame.K_RETURN:
+                            start = time.time()
                             self.findNeighbors()
-                            self.findNS()
-                            self.findSP()
+                            self.find()
                             #self.buildObstacle()
                             self._running = True
                             self._user.image.set_alpha(0)
@@ -638,8 +644,8 @@ class Simulation():
                     if event.type == pygame.QUIT:
                         pygame.quit()
                         sys.exit()
-                    elif event.type == pygame.KEYDOWN: # press enter to start simulation with the configuration 
-                        if event.key == pygame.K_RETURN:
+                    elif event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_RETURN:  # press enter to start simulation with the configuration 
                             self._running = False
                             self._user.image.set_alpha(255)
                             self.__init__()
@@ -651,7 +657,7 @@ class Simulation():
                                     if event.key == pygame.K_s:
                                         pause = False
                 
-                print("step:", self._step)
+                #print("step:", self._step)
                 # i primi 100 passi facciamo diffondere il CHA
                 if(self._step < 100):
                     self.diffusionCHA()
@@ -663,7 +669,6 @@ class Simulation():
                             tmp.append([])
                             for j in range(self._cols):
                                 tmp[i].append(self._grid[i][j].CHA) 
-                        print(self._step)
 
                 elif (self._step > 100):
                     self.diffusionEquation()
@@ -698,6 +703,9 @@ class Simulation():
                 pygame.display.flip()
             
             else:
+                end = time.time() - start
+                print("execution tiime:", end, "s")
+                time.sleep(5000)
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         pygame.quit()

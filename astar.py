@@ -1,6 +1,7 @@
 import pygame
 import math
 from queue import PriorityQueue
+import time 
 
 WIDTH = 800
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
@@ -72,10 +73,23 @@ class Spot:
 
 	def update_neighbors(self, grid):
 		self.neighbors = []
+
 		if self.row < self.total_rows - 1 and not grid[self.row + 1][self.col].is_barrier(): # DOWN
 			self.neighbors.append(grid[self.row + 1][self.col])
-
+			
+		if self.row < self.total_rows - 1 and self.col > 0 and not grid[self.row + 1][self.col - 1].is_barrier(): # DOWN-LEFT
+			self.neighbors.append(grid[self.row + 1][self.col - 1])
+		
+		if self.row < self.total_rows - 1 and self.col < self.total_rows - 1 and not grid[self.row + 1][self.col + 1].is_barrier(): # DOWN-RIGHT
+			self.neighbors.append(grid[self.row + 1][self.col + 1])
+		
 		if self.row > 0 and not grid[self.row - 1][self.col].is_barrier(): # UP
+			self.neighbors.append(grid[self.row - 1][self.col])
+
+		if self.row > 0 and self.col > 0 and not grid[self.row - 1][self.col].is_barrier(): # UP-LEFT
+			self.neighbors.append(grid[self.row - 1][self.col])
+
+		if self.row > 0 and self.col < self.total_rows - 1 and not grid[self.row - 1][self.col].is_barrier(): # UP-RIGHT
 			self.neighbors.append(grid[self.row - 1][self.col])
 
 		if self.col < self.total_rows - 1 and not grid[self.row][self.col + 1].is_barrier(): # RIGHT
@@ -189,7 +203,7 @@ def get_clicked_pos(pos, rows, width):
 
 
 def main(win, width):
-	ROWS = 50
+	ROWS = 35
 	grid = make_grid(ROWS, width)
 
 	start = None
@@ -229,11 +243,14 @@ def main(win, width):
 
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_SPACE and start and end:
+					t0 = time.time()
 					for row in grid:
 						for spot in row:
 							spot.update_neighbors(grid)
 
 					algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
+					t1 = time.time() - t0
+					print("execution time:", t1, "s")
 
 				if event.key == pygame.K_c:
 					start = None
