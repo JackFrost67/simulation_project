@@ -4,7 +4,6 @@ import random
 import sys
 import numpy as np
 from operator import attrgetter
-import time
 
 # color palette
 WHITE = (255, 255, 255)
@@ -262,12 +261,6 @@ class Simulation():
                     cell.PM = cell.PM + (self.PMP1 * (pmVN + (self.PMP2 * pmMN)))
                     
                     minCHAcell = min((x for x in cell.neighbors if (x != None)), key = attrgetter("CHA"))
-
-                    # L'idea iniziale era quella di togliere PM alla cella vicina con il CHA minimo per darlo alla cella
-                    # corrente. Dato che non funziona ho provato a cercare il minimo della moltiplicazione tra PM e CHA di ogni
-                    # vicino. Anche questo non funziona.
-                    # Risultato interessante perchè il PM, nel idea iniziale con un beta superiore a 0.05 , si vede che va proprio
-                    # nella direzione del NS.  
                     
                     if (minCHAcell.CHA != 0 and minCHAcell.CHA < cell.CHA and minCHAcell.PM != self.defaultPM and minCHAcell.PM != 0 and minCHAcell is not None):
                         beta = 0.05
@@ -614,7 +607,6 @@ class Simulation():
                         self._grid[i][j].updateMatrix(WHITE)
                     elif event.type == pygame.KEYDOWN: # press enter to start simulation with the configuration 
                         if event.key == pygame.K_RETURN:
-                            start = time.time()
                             self.findNeighbors()
                             self.find()
                             #self.buildObstacle()
@@ -703,9 +695,6 @@ class Simulation():
                 pygame.display.flip()
             
             else:
-                end = time.time() - start
-                print("execution tiime:", end, "s")
-                time.sleep(5000)
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         pygame.quit()

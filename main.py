@@ -24,7 +24,7 @@ class Cell():
         self.TE = TE
         self.type = type # SP NS U A
         self.index = index
-        self.dir = dir # N S W E
+        self.dir = dir #N S W E
         self.neighbors = np.array([])
 
     def setDirection(self):
@@ -89,8 +89,8 @@ class Block(pygame.sprite.Sprite):
 class Simulation():
     ## parameter for the pphysarum simulation
     # parameters for diffusion equation for the cytoplasm
-    PMP1 = 0.09
-    PMP2 = 0.00
+    PMP1 = 0.08
+    PMP2 = 0.01
 
     # parameters for the diffusion of the chemoattractant
     CAP1 = 0.05
@@ -105,8 +105,8 @@ class Simulation():
     # threshold of Physarum Mass that encapsulate a NS
     thresholdPM = 0.2
 
-    defaultCHA = 100
-    defaultPM = 10000
+    defaultCHA = 2000
+    defaultPM = 2000
 
     def __init__(self):
         pygame.display.set_caption('Physarum Polycephalum Simulation') # setting name of the screen
@@ -190,34 +190,22 @@ class Simulation():
                     self._block[neighbor.index[0]][neighbor.index[1]].updateColor(RED)
                         
             if(cellNS.dir == "N" and cellNS.index[1] - 1 >= 0):
-                self._grid[cellNS.index[0] - 1][cellNS.index[1]].type = "A"
-                self._grid[cellNS.index[0] - 1][cellNS.index[1] - 1].type = "A"
-                self._grid[cellNS.index[0] - 1][cellNS.index[1] + 1].type = "A"
-                
+                self._grid[cellNS.index[0] - 1][cellNS.index[1]].type = self._grid[cellNS.index[0] - 1][cellNS.index[1] - 1].type = self._grid[cellNS.index[0] - 1][cellNS.index[1] + 1].type = "A"
                 self._block[cellNS.index[0] - 1][cellNS.index[1]].updateColor(WHITE)
                 self._block[cellNS.index[0] - 1][cellNS.index[1] - 1].updateColor(WHITE)
                 self._block[cellNS.index[0] - 1][cellNS.index[1] + 1].updateColor(WHITE)
             elif(cellNS.dir == "W" and cellNS.index[0] - 1 >= 0):
-                self._grid[cellNS.index[0]][cellNS.index[1] - 1].type = "A"
-                self._grid[cellNS.index[0] - 1][cellNS.index[1] - 1].type = "A"
-                self._grid[cellNS.index[0] + 1][cellNS.index[1] - 1].type = "A"
-
+                self._grid[cellNS.index[0]][cellNS.index[1] - 1].type = self._grid[cellNS.index[0] - 1][cellNS.index[1] - 1].type = self._grid[cellNS.index[0] + 1][cellNS.index[1] - 1].type = "A"
                 self._block[cellNS.index[0]][cellNS.index[1] - 1].updateColor(WHITE)
                 self._block[cellNS.index[0] - 1][cellNS.index[1] - 1].updateColor(WHITE)
                 self._block[cellNS.index[0] + 1][cellNS.index[1] - 1].updateColor(WHITE)
             elif(cellNS.dir == "E" and cellNS.index[0] + 1 < self._rows):
-                self._grid[cellNS.index[0]][cellNS.index[1] + 1].type =  "A"
-                self._grid[cellNS.index[0] - 1][cellNS.index[1] + 1].type = "A"
-                self._grid[cellNS.index[0] + 1][cellNS.index[1] + 1].type = "A"
-
+                self._grid[cellNS.index[0]][cellNS.index[1] + 1].type =  self._grid[cellNS.index[0] - 1][cellNS.index[1] + 1].type = self._grid[cellNS.index[0] + 1][cellNS.index[1] + 1].type = "A"
                 self._block[cellNS.index[0]][cellNS.index[1] + 1].updateColor(WHITE)
                 self._block[cellNS.index[0] - 1][cellNS.index[1] + 1].updateColor(WHITE)
                 self._block[cellNS.index[0] + 1][cellNS.index[1] + 1].updateColor(WHITE)
             elif(cellNS.dir == "S" and cellNS.index[1] + 1 < self._cols):
-                self._grid[cellNS.index[0] + 1][cellNS.index[1]].type = "A"
-                self._grid[cellNS.index[0] + 1][cellNS.index[1] - 1].type = "A"
-                self._grid[cellNS.index[0] + 1][cellNS.index[1] + 1].type = "A"
-
+                self._grid[cellNS.index[0] + 1][cellNS.index[1]].type = self._grid[cellNS.index[0] + 1][cellNS.index[1] - 1].type = self._grid[cellNS.index[0] + 1][cellNS.index[1] + 1].type = "A"
                 self._block[cellNS.index[0] + 1][cellNS.index[1]].updateColor(WHITE)
                 self._block[cellNS.index[0] + 1][cellNS.index[1] - 1].updateColor(WHITE)
                 self._block[cellNS.index[0] + 1][cellNS.index[1] + 1].updateColor(WHITE)
@@ -258,17 +246,17 @@ class Simulation():
                         NE = self.PAP
                         SW = -self.PAP
 
-                    pmVN = sum([(((1 + W) * cell.neighbors[0].PM) - cell.PM) if cell.neighbors[0] is not None and cell.neighbors[0].AA else 0,
-                                (((1 + N) * cell.neighbors[2].PM) - cell.PM) if cell.neighbors[2] is not None and cell.neighbors[2].AA else 0,
-                                (((1 + E) * cell.neighbors[4].PM) - cell.PM) if cell.neighbors[4] is not None and cell.neighbors[4].AA else 0,
-                                (((1 + S) * cell.neighbors[6].PM) - cell.PM) if cell.neighbors[6] is not None and cell.neighbors[6].AA else 0])
-                     
-                    pmMN = sum([(((1 + NW) * cell.neighbors[1].PM) - cell.PM) if cell.neighbors[1] is not None and cell.neighbors[1].AA else 0,
-                                (((1 + NE) * cell.neighbors[3].PM) - cell.PM) if cell.neighbors[3] is not None and cell.neighbors[3].AA else 0,
-                                (((1 + SE) * cell.neighbors[5].PM) - cell.PM) if cell.neighbors[5] is not None and cell.neighbors[5].AA else 0,
-                                (((1 + SW) * cell.neighbors[7].PM) - cell.PM) if cell.neighbors[7] is not None and cell.neighbors[7].AA else 0])
+                    pmVN = sum([(((1 + W) * cell.neighbors[0].PM) - (cell.neighbors[0].AA * cell.PM)) if cell.neighbors[0] is not None else 0,
+                                (((1 + N) * cell.neighbors[2].PM) - (cell.neighbors[2].AA * cell.PM)) if cell.neighbors[2] is not None else 0,
+                                (((1 + E) * cell.neighbors[4].PM) - (cell.neighbors[4].AA * cell.PM)) if cell.neighbors[4] is not None else 0,
+                                (((1 + S) * cell.neighbors[6].PM) - (cell.neighbors[6].AA * cell.PM)) if cell.neighbors[6] is not None else 0])
                     
-                    cell.PM = cell.PM + ((self.PMP1 * pmVN) + (self.PMP2 * pmMN))
+                    pmMN = sum([(((1 + NW) * cell.neighbors[1].PM) - (cell.neighbors[1].AA * cell.PM)) if cell.neighbors[1] is not None else 0,
+                                (((1 + NE) * cell.neighbors[3].PM) - (cell.neighbors[3].AA * cell.PM)) if cell.neighbors[3] is not None else 0,
+                                (((1 + SE) * cell.neighbors[5].PM) - (cell.neighbors[5].AA * cell.PM)) if cell.neighbors[5] is not None else 0,
+                                (((1 + SW) * cell.neighbors[7].PM) - (cell.neighbors[7].AA * cell.PM)) if cell.neighbors[7] is not None else 0])
+                    
+                    cell.PM = cell.PM + (self.PMP1 * (pmVN + self.PMP2 * pmMN))
 
                     if cell.PM > self.defaultPM:
                         cell.PM = self.defaultPM
@@ -276,17 +264,17 @@ class Simulation():
                         cell.PM = 0
 
                 if(cell.type != "U" and cell.type != "NS"):
-                    chaVN = sum([((cell.neighbors[0].CHA) - cell.CHA) if cell.neighbors[0] is not None and cell.neighbors[0].AA else 0,
-                                ((cell.neighbors[2].CHA) - cell.CHA) if cell.neighbors[2] is not None and cell.neighbors[2].AA else 0,
-                                ((cell.neighbors[4].CHA) - cell.CHA) if cell.neighbors[4] is not None and cell.neighbors[4].AA else 0,
-                                ((cell.neighbors[6].CHA) - cell.CHA) if cell.neighbors[6] is not None and cell.neighbors[6].AA else 0])
+                    chaVN = sum([(cell.neighbors[0].CHA - (cell.neighbors[0].AA * cell.CHA)) if cell.neighbors[0] is not None else 0,
+                                (cell.neighbors[2].CHA - (cell.neighbors[2].AA * cell.CHA)) if cell.neighbors[2] is not None else 0,
+                                (cell.neighbors[4].CHA - (cell.neighbors[4].AA * cell.CHA)) if cell.neighbors[4] is not None else 0,
+                                (cell.neighbors[6].CHA - (cell.neighbors[6].AA * cell.CHA)) if cell.neighbors[6] is not None else 0])
                     
-                    chaMN = sum([((cell.neighbors[1].CHA) - cell.CHA) if cell.neighbors[1] is not None and cell.neighbors[1].AA else 0,
-                                ((cell.neighbors[3].CHA) - cell.CHA) if cell.neighbors[3] is not None and cell.neighbors[3].AA else 0,
-                                ((cell.neighbors[5].CHA) - cell.CHA) if cell.neighbors[5] is not None and cell.neighbors[5].AA else 0,
-                                ((cell.neighbors[7].CHA) - cell.CHA) if cell.neighbors[7] is not None and cell.neighbors[7].AA else 0])
+                    chaMN = sum([(cell.neighbors[1].CHA - (cell.neighbors[1].AA * cell.CHA)) if cell.neighbors[1] is not None else 0,
+                                (cell.neighbors[3].CHA - (cell.neighbors[3].AA * cell.CHA)) if cell.neighbors[3] is not None else 0,
+                                (cell.neighbors[5].CHA - (cell.neighbors[5].AA * cell.CHA)) if cell.neighbors[5] is not None else 0,
+                                (cell.neighbors[7].CHA - (cell.neighbors[7].AA * cell.CHA)) if cell.neighbors[7] is not None else 0])
 
-                    cell.CHA = self.CON * (cell.CHA + ((self.CAP1 * chaVN) + (self.CAP2 * chaMN)))
+                    cell.CHA = self.CON * cell.CHA + (self.CAP1 * (chaVN + self.CAP2 * chaMN))
 
                     if cell.CHA > self.defaultCHA:
                         cell.CHA = self.defaultCHA
@@ -294,8 +282,8 @@ class Simulation():
                         cell.CHA = 0
                 
                 if cell.PM != 0 and cell.TE != True and cell.type != "SP" and cell.type != "NS" and cell.type != "U":
-                    self._block[cell.index[0]][cell.index[1]].updateColor(YELLOW, cell.PM + 0.95)
-
+                    self._block[cell.index[0]][cell.index[1]].updateColor(YELLOW, cell.PM)
+    
     def setTE(self):
         for cellNS in self._NS:
             if cellNS.PM >= self.thresholdPM :
@@ -305,15 +293,15 @@ class Simulation():
                 while (cell.type != "SP" and count <= 500):
                     cell.TE = True
                     self._block[cell.index[0]][cell.index[1]].updateColor(BLACK)
-                    cell = max((x for x in cell.neighbors if x is not None and x.TE != True and x.type != "NS"), key = attrgetter("PM"))
+
+                    cell = max((x for x in cell.neighbors if x != None), key = attrgetter("PM"))
                     count = count + 1
                 
-                if cell.type == "SP":
-                    self._NS.remove(cellNS)
-                    cellNS.CHA = 0
-                    cellNS.PM = 0
-                    cellNS.type = "A"
-                    # self._SP.append(cellNS)
+                self._NS.remove(cellNS)
+                cellNS.CHA = 0
+                cellNS.PM = self.defaultPM
+                cellNS.type = "SP"
+                self._SP.append(cellNS)
 
                 if not self._NS:
                     self._done = True
@@ -325,6 +313,7 @@ class Simulation():
 
         self._user_group.update()
         self._all.draw(self.screen)
+        start = 0
 
         # main loop
         while True:
@@ -339,12 +328,16 @@ class Simulation():
                         sys.exit()
                     elif event.type == pygame.MOUSEMOTION:
                         self.m_position = (pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
-                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    
+                    if pygame.mouse.get_pressed()[0]:
                         j = int(np.round(np.interp(self.m_position[0], [0, self._size[0]], [0, self._rows])))
                         i = int(np.round(np.interp(self.m_position[1], [0, self._size[1]], [0, self._cols])))
-                        self._block[i][j].updateColor(self._user._color)
-                        self._grid[i][j].updateMatrix(self._user._color)
-                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+                        try:
+                            self._block[i][j].updateColor(self._user._color)
+                            self._grid[i][j].updateMatrix(self._user._color)
+                        except:
+                            pass
+                    elif pygame.mouse.get_pressed()[2]:
                         j = int(np.round(np.interp(self.m_position[0], [0, self._size[0]], [0, self._rows])))
                         i = int(np.round(np.interp(self.m_position[1], [0, self._size[1]], [0, self._cols])))
                         self._block[i][j].updateColor(WHITE)
@@ -369,7 +362,7 @@ class Simulation():
                 self._all.draw(self.screen)
                 
                 # clock cap 60 ticks per seconds
-                self._clock.tick(120)
+                self._clock.tick(60)
                 
                 # update
                 pygame.display.flip()
@@ -394,11 +387,25 @@ class Simulation():
                                         pause = False
                 
                 print(self._step)
-                
-                self.diffusionEquation()
-                
-                if(self._step % 100 == 0):
+                if (self._step % 50 != 0):
+                    self.diffusionEquation()
+                elif (self._step == 50000):
+                    cellSP = self._SP[len(self._SP) - 2]
+                    self._SP.remove(cellSP)
+
+                    for cell in self._SP:
+                        cell.type = "NS"
+                        cell.PM = 0
+                        cell.CHA = self.defaultCHA
+                        self._NS.append(cell)
+
+                    self._SP = [cellSP]
+                else:
                     self.setTE()
+                        
+                if (self._step >= 50000):
+                    if (self._step >= 100000): 
+                        raise NameError('Too many iterations, giving up')
 
                 # update time step
                 self._step = self._step + 1
@@ -410,6 +417,7 @@ class Simulation():
                 # clock cap n ticks per seconds
                 self._clock.tick(120)
                 pygame.display.flip()
+            
             else:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
