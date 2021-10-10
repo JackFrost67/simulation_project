@@ -232,14 +232,11 @@ def main(win, width):
 
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_SPACE and start and end:
-					t0 = time.time()
 					for row in grid:
 						for spot in row:
 							spot.update_neighbors(grid)
 
 					algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
-					t1 = time.time() - t0
-					print("execution time:", t1, "s")
 
 				if event.key == pygame.K_c:
 					start = None

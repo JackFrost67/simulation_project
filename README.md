@@ -1,7 +1,3 @@
-# simulation_project
+# Comparazione tra Physarum Polycephalum Algorithm Based (PPAB) e A* per la risoluzione di problemi di path-finding
 
-Fare griglia 3D
-Leggere e impletare leggi di traffico aereo
-Cambiare l'equazione sulla base della tridimensionalità e visualizzare la griglia 3D
-Sistemare il codice
-Fare report
+Implementazione di un'automa cellulare in grado di simulare il comportamento del Physarum Polycephalum, per la risoluzione di problemi di path-finding.
